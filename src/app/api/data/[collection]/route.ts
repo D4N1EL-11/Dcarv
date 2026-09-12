@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { create, getAll, getById, remove, update, JsonDBError } from '@/lib/json-db';
-import { createSchemaRegistry, getSchema } from '@data/_schema/registry';
-import type { BaseRecord } from '@/lib/types';
+import { createSchemaRegistry, getSchema, updateSchemaRegistry } from '@data/_schema/registry';
+import type { BaseRecord, QueryOptions } from '@/lib/types';
 import { getSession } from '@/lib/auth/session';
 import { can } from '@/lib/auth/rbac';
 
@@ -27,12 +27,14 @@ export async function GET(request: Request, context: Context) {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (id) return success(await getById(collection, id));
-    return success(await getAll(collection, {
+    const sortOrder: QueryOptions['sortOrder'] = url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc';
+    const queryOptions: QueryOptions = {
       limit: Number(url.searchParams.get('limit') ?? 50),
       offset: Number(url.searchParams.get('offset') ?? 0),
-      sortBy: url.searchParams.get('sortBy') ?? undefined,
-      sortOrder: url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc',
-    }));
+      sortOrder,
+      ...(url.searchParams.get('sortBy') ? { sortBy: url.searchParams.get('sortBy') as string } : {}),
+    };
+    return success(await getAll(collection, queryOptions));
   } catch (error) { return failure(error); }
 }
 
@@ -53,10 +55,12 @@ export async function PUT(request: Request, context: Context) {
     await authorize('update');
     const { collection } = await context.params;
     const schema = getSchema(collection);
+    const updateSchema = updateSchemaRegistry[collection];
     if (!schema) return failure(new JsonDBError('Colección no registrada.', 'NOT_FOUND', 404));
     const body = await request.json() as { id?: string; [key: string]: unknown };
     if (!body.id) return failure(new JsonDBError('El campo id es obligatorio.', 'VALIDATION_ERROR', 400));
-    const parsed = schema.partial().safeParse(body);
+    const parsed = updateSchema?.safeParse(body);
+    if (!parsed) return failure(new JsonDBError('Colección no actualizable.', 'VALIDATION_ERROR', 400));
     if (!parsed.success) return failure(new JsonDBError(parsed.error.message, 'VALIDATION_ERROR', 400));
     const { id, ...partial } = parsed.data as { id: string; [key: string]: unknown };
     return success(await update(collection, id, partial));
