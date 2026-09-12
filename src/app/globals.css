@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+:root {
+  --bg-primary: #f5f7fb;
+  --bg-secondary: #ffffff;
+  --text-primary: #172033;
+  --text-secondary: #657086;
+  --line: #dfe5ef;
+  --accent: #1769e0;
+  --accent-soft: #e7f0ff;
+}
+
+.dark {
+  --bg-primary: #10151f;
+  --bg-secondary: #171e2b;
+  --text-primary: #f4f7fb;
+  --text-secondary: #9ca9bd;
+  --line: #2a3445;
+  --accent-soft: #172d50;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg-primary); color: var(--text-primary); font-family: 'Avenir Next', 'Segoe UI', sans-serif; }
+a { color: inherit; text-decoration: none; }
+button, input, textarea, select { font: inherit; }
+
+@keyframes float-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.animate-float-in { animation: float-in 500ms ease-out both; }

@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { verifyPassword } from '@/lib/auth/hash';
+import { createToken } from '@/lib/auth/jwt';
+import { query } from '@/lib/json-db';
+import type { UserRecord } from '@data/_schema/user.schema';
+export async function POST(request: Request) { const body = await request.json() as { email?: string; password?: string }; if (!body.email || !body.password) return NextResponse.json({ error: 'Email y contraseña son obligatorios', code: 'VALIDATION_ERROR' }, { status: 400 }); const users = await query<UserRecord>('user', (user) => user.email === body.email); const user = users[0]; if (!user || !(await verifyPassword(body.password, user.passwordHash))) return NextResponse.json({ error: 'Credenciales inválidas', code: 'UNAUTHORIZED' }, { status: 401 }); const token = await createToken({ userId: user.id, email: user.email, role: user.role }); const response = NextResponse.json({ success: true, data: { id: user.id, email: user.email, role: user.role } }); response.cookies.set('dcarv_session', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24, path: '/' }); return response; }

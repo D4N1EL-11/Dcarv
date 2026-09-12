@@ -1,0 +1,8 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/card';
+import { Container } from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+export default function RegisterPage() { const router = useRouter(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); async function submit(event: React.FormEvent) { event.preventDefault(); const response = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }); if (response.ok) router.push('/login'); else setError('No se pudo crear la cuenta'); } return <Container maxWidth="sm" className="grid min-h-screen place-items-center"><Card className="w-full"><h1 className="text-2xl font-bold">Crear cuenta</h1><form className="mt-6 grid gap-4" onSubmit={submit}><Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /><Input id="password" label="Contraseña" type="password" helperText="Mínimo 8 caracteres" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />{error ? <p className="text-sm text-red-600">{error}</p> : null}<Button type="submit">Registrarme</Button></form></Card></Container>; }

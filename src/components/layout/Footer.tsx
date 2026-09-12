@@ -1,0 +1,1 @@
+export function Footer() { return <footer className="border-t border-[var(--line)] px-6 py-4 text-xs text-[var(--text-secondary)]">Dcarv · versión {process.env.NEXT_PUBLIC_APP_VERSION ?? '0.1.0'}</footer>; }

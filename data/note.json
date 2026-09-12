@@ -1,0 +1,6 @@
+{
+  "_meta": { "version": 1, "lastModified": "2026-03-25T12:00:00.000Z", "description": "Notas del workspace" },
+  "records": [
+    { "id": "not_001", "createdAt": "2026-03-25T12:00:00.000Z", "updatedAt": "2026-03-25T12:00:00.000Z", "title": "Bienvenido a Dcarv", "content": "Esta nota valida el módulo CRUD.", "category": "general", "pinned": true }
+  ]
+}

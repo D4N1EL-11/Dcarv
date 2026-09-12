@@ -1,0 +1,6 @@
+'use client';
+import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import type { NoteRecord } from '@/modules/notes/types';
+export function NoteList({ notes, onDelete }: { notes: NoteRecord[]; onDelete: (id: string) => void }) { return <div className="grid gap-3">{notes.map((note) => <Card key={note.id} hoverable className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2">{note.pinned ? <span title="Fijada">*</span> : null}<h2 className="font-semibold">{note.title}</h2><Badge variant={note.category === 'importante' ? 'warning' : note.category === 'pendiente' ? 'info' : 'success'}>{note.category}</Badge></div><p className="mt-2 text-sm text-[var(--text-secondary)]">{note.content}</p></div><div className="flex shrink-0 gap-2 text-xs"><Link className="rounded border border-[var(--line)] px-2 py-1" href={`/dashboard/notes/${note.id}`}>Ver</Link><button className="rounded border border-red-200 px-2 py-1 text-red-600" onClick={() => onDelete(note.id)}>Borrar</button></div></Card>)}</div>; }

@@ -1,0 +1,3 @@
+import type { ElementType, HTMLAttributes } from 'react';
+interface TypographyProps extends HTMLAttributes<HTMLElement> { as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span'; variant?: 'title' | 'heading' | 'body' | 'muted'; }
+export function Typography({ as = 'p', variant = 'body', className = '', ...props }: TypographyProps) { const Tag = as as ElementType; const styles = { title: 'text-3xl font-bold tracking-tight', heading: 'text-xl font-semibold', body: 'text-sm', muted: 'text-sm text-[var(--text-secondary)]' }; return <Tag className={`${styles[variant]} ${className}`} {...props} />; }

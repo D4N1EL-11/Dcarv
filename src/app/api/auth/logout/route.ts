@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';
+export async function POST() { const response = NextResponse.json({ success: true, data: { loggedOut: true } }); response.cookies.delete('dcarv_session'); return response; }

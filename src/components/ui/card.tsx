@@ -1,0 +1,3 @@
+import type { HTMLAttributes } from 'react';
+interface CardProps extends HTMLAttributes<HTMLDivElement> { padding?: 'none' | 'sm' | 'md' | 'lg'; hoverable?: boolean; bordered?: boolean; }
+export function Card({ className = '', padding = 'md', hoverable = false, bordered = true, ...props }: CardProps) { return <div className={`${bordered ? 'border border-[var(--line)]' : ''} rounded-xl bg-[var(--bg-secondary)] ${hoverable ? 'transition hover:-translate-y-0.5 hover:shadow-lg' : ''} ${padding === 'none' ? '' : padding === 'sm' ? 'p-3' : padding === 'lg' ? 'p-7' : 'p-5'} ${className}`} {...props} />; }

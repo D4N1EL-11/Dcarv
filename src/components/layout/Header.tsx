@@ -1,0 +1,4 @@
+'use client';
+import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+export function Header({ onMenu }: { onMenu: () => void }) { return <header className="flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--bg-secondary)] px-5"><div className="flex items-center gap-3"><button className="rounded-lg border border-[var(--line)] px-2 py-1.5 md:hidden" onClick={onMenu} aria-label="Abrir navegación">Menu</button><Link href="/dashboard" className="text-lg font-bold tracking-tight">DCARV<span className="text-[var(--accent)]">.</span></Link></div><nav className="hidden items-center gap-5 text-sm text-[var(--text-secondary)] md:flex"><Link href="/dashboard">Resumen</Link><Link href="/dashboard/notes">Notas</Link><Link href="/dashboard/status">Estado</Link></nav><ThemeToggle /></header>; }
