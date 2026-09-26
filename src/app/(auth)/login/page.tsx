@@ -1,9 +1,137 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-export default function LoginPage() { const router = useRouter(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); async function submit(event: React.FormEvent) { event.preventDefault(); const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }); if (response.ok) router.push('/dashboard'); else setError('Credenciales inválidas'); } return <Container maxWidth="sm" className="grid min-h-screen place-items-center"><Card className="w-full"><h1 className="text-2xl font-bold">Entrar a Dcarv</h1><form className="mt-6 grid gap-4" onSubmit={submit}><Input id="email" label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /><Input id="password" label="Contraseña" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />{error ? <p className="text-sm text-red-600">{error}</p> : null}<Button type="submit">Entrar</Button></form><p className="mt-5 text-sm text-[var(--text-secondary)]">¿Primera vez? <Link className="text-[var(--accent)]" href="/register">Crear cuenta</Link></p></Card></Container>; }
+
+export default function LoginPage() {
+	const router = useRouter();
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
+	const [emailError, setEmailError] = useState('');
+	const [passwordError, setPasswordError] = useState('');
+	const [authError, setAuthError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	async function submit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setAuthError('');
+
+		const normalizedEmail = email.trim();
+		const nextEmailError = !normalizedEmail
+			? 'Ingresa tu correo electrónico.'
+			: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+				? ''
+				: 'Ingresa un correo electrónico válido.';
+		const nextPasswordError = password.trim() ? '' : 'Ingresa tu contraseña.';
+
+		setEmailError(nextEmailError);
+		setPasswordError(nextPasswordError);
+
+		if (nextEmailError || nextPasswordError) return;
+
+		setIsSubmitting(true);
+		try {
+			// TODO: conectar con la API real
+			await new Promise((resolve) => setTimeout(resolve, 500));
+
+			if (normalizedEmail.toLowerCase() === 'demo@dcarv.com' && password === 'demo1234') {
+				router.push('/');
+			} else {
+				setAuthError('Correo o contraseña incorrectos');
+			}
+		} finally {
+			setIsSubmitting(false);
+		}
+	}
+
+	return (
+		<main className="grid min-h-screen place-items-center bg-[var(--bg-primary)] py-10">
+			<Container maxWidth="sm" className="animate-float-in">
+				<Card className="mx-auto w-full max-w-md overflow-hidden p-0 shadow-xl shadow-slate-900/5">
+					<div className="h-1.5 bg-[var(--accent)]" />
+					<div className="p-6 sm:p-9">
+						<div className="mb-8 flex items-center gap-3">
+							<div className="grid size-11 place-items-center rounded-xl bg-[var(--accent)] text-lg font-bold text-white">
+								D
+							</div>
+							<div>
+								<p className="font-semibold tracking-wide">DCARV</p>
+								<p className="text-xs text-[var(--text-secondary)]">Estado de salas de computación</p>
+							</div>
+						</div>
+
+						<p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
+							<span className="size-2 rounded-full bg-emerald-500" />
+							Acceso al sistema
+						</p>
+						<h1 className="text-3xl font-bold tracking-tight">Bienvenido de nuevo</h1>
+						<p className="mt-2 text-sm text-[var(--text-secondary)]">
+							Inicia sesión para revisar tus salas y equipos.
+						</p>
+
+						<form className="mt-8 grid gap-5" onSubmit={submit} noValidate>
+							<Input
+								id="email"
+								label="Correo electrónico"
+								type="email"
+								autoComplete="email"
+								placeholder="nombre@dcarv.com"
+								className="w-full min-w-0"
+								value={email}
+								error={emailError}
+								onChange={(event) => {
+									setEmail(event.target.value);
+									setEmailError('');
+									setAuthError('');
+								}}
+							/>
+							<div className="grid gap-2">
+								<Input
+									id="password"
+									label="Contraseña"
+									type="password"
+									autoComplete="current-password"
+									placeholder="Tu contraseña"
+									className="w-full min-w-0"
+									value={password}
+									error={passwordError}
+									onChange={(event) => {
+										setPassword(event.target.value);
+										setPasswordError('');
+										setAuthError('');
+									}}
+								/>
+								<div className="text-right">
+									<a
+										href="#"
+										className="text-sm font-medium text-[var(--accent)] hover:underline"
+										onClick={(event) => event.preventDefault()}
+									>
+										Olvidé mi contraseña
+									</a>
+								</div>
+							</div>
+
+							{authError ? (
+								<p className="-mt-1 text-sm text-red-600" role="alert">
+									{authError}
+								</p>
+							) : null}
+
+							<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+								{isSubmitting ? 'Entrando...' : 'Entrar'}
+							</Button>
+						</form>
+					</div>
+				</Card>
+				<p className="mt-6 text-center text-xs text-[var(--text-secondary)]">
+					Dcarv · Monitoreo de salas de computación
+				</p>
+			</Container>
+		</main>
+	);
+}
