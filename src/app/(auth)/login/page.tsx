@@ -1,11 +1,22 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
+
+const loginTheme = {
+	'--bg-primary': '#f3efe7',
+	'--bg-secondary': '#fffdf8',
+	'--text-primary': '#172033',
+	'--text-secondary': '#657086',
+	'--line': 'rgba(23, 32, 51, 0.15)',
+	'--accent': '#e15f3d',
+	'--accent-soft': 'rgba(225, 95, 61, 0.12)',
+	fontFamily: "'Avenir Next', 'Segoe UI', sans-serif",
+} as CSSProperties;
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -49,9 +60,12 @@ export default function LoginPage() {
 	}
 
 	return (
-		<main className="grid min-h-screen place-items-center bg-[var(--bg-primary)] py-10">
+		<main
+			className="grid min-h-screen place-items-center bg-[var(--bg-primary)] py-10 text-[var(--text-primary)]"
+			style={loginTheme}
+		>
 			<Container maxWidth="sm" className="animate-float-in">
-				<Card className="mx-auto w-full max-w-md overflow-hidden p-0 shadow-xl shadow-slate-900/5">
+				<Card className="mx-auto w-full max-w-md overflow-hidden p-0 shadow-xl shadow-[#172033]/10">
 					<div className="h-1.5 bg-[var(--accent)]" />
 					<div className="p-6 sm:p-9">
 						<div className="mb-8 flex items-center gap-3">
@@ -59,16 +73,16 @@ export default function LoginPage() {
 								D
 							</div>
 							<div>
-								<p className="font-semibold tracking-wide">DCARV</p>
+								<p className="text-lg font-black">DCARV</p>
 								<p className="text-xs text-[var(--text-secondary)]">Estado de salas de computación</p>
 							</div>
 						</div>
 
 						<p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-							<span className="size-2 rounded-full bg-emerald-500" />
+							<span className="size-2 rounded-full bg-[#e15f3d]" />
 							Acceso al sistema
 						</p>
-						<h1 className="text-3xl font-bold tracking-tight">Bienvenido de nuevo</h1>
+						<h1 className="text-3xl font-black">Bienvenido de nuevo</h1>
 						<p className="mt-2 text-sm text-[var(--text-secondary)]">
 							Inicia sesión para revisar tus salas y equipos.
 						</p>
@@ -117,7 +131,7 @@ export default function LoginPage() {
 							</div>
 
 							{authError ? (
-								<p className="-mt-1 text-sm text-red-600" role="alert">
+								<p className="-mt-1 text-sm text-[#bd4a36]" role="alert">
 									{authError}
 								</p>
 							) : null}
