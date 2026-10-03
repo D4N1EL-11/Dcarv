@@ -1,13 +1,39 @@
 import { NextResponse } from 'next/server';
-import { hashPassword } from '@/lib/auth/hash';
-import { create } from '@/lib/json-db';
-import { userCreateSchema } from '@data/_schema/user.schema';
-import type { UserRecord } from '@data/_schema/user.schema';
+import { z } from 'zod';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+
+const registerSchema = z.object({
+	email: z.string().email(),
+	password: z.string().min(8),
+});
 
 export async function POST(request: Request) {
-	const parsed = userCreateSchema.safeParse(await request.json());
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json({ error: 'Datos inválidos', code: 'VALIDATION_ERROR' }, { status: 400 });
+	}
+
+	const parsed = registerSchema.safeParse(body);
 	if (!parsed.success) return NextResponse.json({ error: 'Datos inválidos', code: 'VALIDATION_ERROR' }, { status: 400 });
-	const { password, ...input } = parsed.data;
-	const user = await create<UserRecord>('user', { ...input, passwordHash: await hashPassword(password), role: 'viewer' }, 'usr');
-	return NextResponse.json({ success: true, data: { id: user.id, email: user.email, role: user.role } }, { status: 201 });
+
+	try {
+		const supabase = createSupabaseServerClient();
+		const { data, error } = await supabase.auth.signUp(parsed.data);
+		if (error) {
+			const status = error.status && error.status >= 500 ? 503 : 400;
+			return NextResponse.json(
+				{ error: status === 503 ? 'Servicio de autenticación no disponible' : 'No se pudo crear la cuenta', code: status === 503 ? 'AUTH_UNAVAILABLE' : 'REGISTRATION_FAILED' },
+				{ status },
+			);
+		}
+
+		return NextResponse.json(
+			{ success: true, data: { id: data.user?.id ?? null, confirmationRequired: !data.session } },
+			{ status: 201 },
+		);
+	} catch {
+		return NextResponse.json({ error: 'Servicio de autenticación no disponible', code: 'AUTH_UNAVAILABLE' }, { status: 503 });
+	}
 }

@@ -46,14 +46,18 @@ export default function LoginPage() {
 
 		setIsSubmitting(true);
 		try {
-			// TODO: conectar con la API real
-			await new Promise((resolve) => setTimeout(resolve, 500));
-
-			if (normalizedEmail.toLowerCase() === 'demo@dcarv.com' && password === 'demo1234') {
-				router.push('/');
-			} else {
-				setAuthError('Correo o contraseña incorrectos');
+			const response = await fetch('/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email: normalizedEmail, password }),
+			});
+			const result = (await response.json()) as { error?: string };
+			if (!response.ok) {
+				setAuthError(response.status === 401 ? 'Correo o contraseña incorrectos' : result.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.');
+				return;
 			}
+			router.replace('/dashboard');
+			router.refresh();
 		} finally {
 			setIsSubmitting(false);
 		}
