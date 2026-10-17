@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
@@ -25,7 +26,11 @@ export default function LoginPage() {
 	const [emailError, setEmailError] = useState('');
 	const [passwordError, setPasswordError] = useState('');
 	const [authError, setAuthError] = useState('');
+	const [restablecimientoAviso, setRestablecimientoAviso] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	useEffect(() => {
+		setRestablecimientoAviso(new URLSearchParams(window.location.search).get('restablecida') === '1');
+	}, []);
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -90,6 +95,7 @@ export default function LoginPage() {
 						<p className="mt-2 text-sm text-[var(--text-secondary)]">
 							Inicia sesión para revisar tus salas y equipos.
 						</p>
+						{restablecimientoAviso ? <p role="status" className="mt-4 text-sm text-emerald-700">La contraseña se restableció correctamente. Inicia sesión con tu nueva contraseña.</p> : null}
 
 						<form className="mt-8 grid gap-5" onSubmit={submit} noValidate>
 							<Input
@@ -124,13 +130,12 @@ export default function LoginPage() {
 									}}
 								/>
 								<div className="text-right">
-									<a
-										href="#"
+									<Link
+										href={email.trim() ? `/recuperar-contrasena?email=${encodeURIComponent(email.trim())}` : '/recuperar-contrasena'}
 										className="text-sm font-medium text-[var(--accent)] hover:underline"
-										onClick={(event) => event.preventDefault()}
 									>
-										Olvidé mi contraseña
-									</a>
+										¿Olvidaste tu contraseña?
+									</Link>
 								</div>
 							</div>
 
