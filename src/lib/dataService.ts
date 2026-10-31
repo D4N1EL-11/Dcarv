@@ -1,5 +1,38 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
+export { cerrarConexion } from '@/lib/db/conexion';
+export { crearSala, listarSalas } from '@/lib/datos/salas';
+export {
+	cambiarEstadoEquipo,
+	crearEquipo,
+	listarEquipos,
+	obtenerEquipo,
+} from '@/lib/datos/equipos';
+export {
+	cerrarIncidencia,
+	historialDeEquipo,
+	listarIncidencias,
+	reportarIncidencia,
+} from '@/lib/datos/incidencias';
+export {
+	asignarTecnico,
+	crearTecnico,
+	listarCandidatosABaja,
+	listarTecnicos,
+	reasignarIncidenciasVencidas,
+} from '@/lib/datos/tecnicos';
+export type {
+	DetalleEquipo,
+	EstadoEquipo,
+	EstadoIncidencia,
+	FilaCandidato,
+	FilaEquipo,
+	FilaIncidencia,
+	FilaSala,
+	FilaTecnico,
+	ResultadoIncidencia,
+} from '@/lib/datos/tipos';
+
 export type UsuarioRestablecimiento = { id: string; email: string };
 export type TokenRestablecimiento = { id: string; usuario_id: string };
 

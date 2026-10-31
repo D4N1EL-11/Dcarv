@@ -1,6 +1,20 @@
 @import 'tailwindcss';
 @source '../**/*.{ts,tsx}';
 
+@theme {
+  --color-primario: #245a8d;
+  --color-primario-suave: #e6eef5;
+  --color-funcional: #2f7d4f;
+  --color-reparacion: #b7791f;
+  --color-baja: #b83232;
+  --color-revision: #245a8d;
+  --color-fondo: #f5f6f8;
+  --color-superficie: #ffffff;
+  --color-texto: #1f2933;
+  --color-texto-suave: #52606d;
+  --color-borde: #d9dee4;
+}
+
 :root {
   --bg-primary: #f5f7fb;
   --bg-secondary: #ffffff;

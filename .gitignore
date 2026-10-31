@@ -8,3 +8,5 @@ data/_backups/*
 !data/_backups/.gitkeep
 coverage/
 *.log
+.vercel
+.env*

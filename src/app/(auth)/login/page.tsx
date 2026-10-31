@@ -61,7 +61,7 @@ export default function LoginPage() {
 				setAuthError(response.status === 401 ? 'Correo o contraseña incorrectos' : result.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.');
 				return;
 			}
-			router.replace('/dashboard');
+			router.replace('/soporte');
 			router.refresh();
 		} finally {
 			setIsSubmitting(false);
