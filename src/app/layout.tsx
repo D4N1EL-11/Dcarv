@@ -3,8 +3,9 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME ?? 'Dcarv',
-  description: 'Sistema fullstack TypeScript con JSON Database Layer.',
+  title: 'Soporte de Salas',
+  description:
+    'Control de calidad y soporte técnico de las salas de cómputo: inventario de equipos, incidencias, estados e historial.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

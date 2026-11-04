@@ -5,7 +5,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { validarDescripcion, type EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { obtenerEquipoPorCodigo } from './equipos';
-import type { FilaIncidencia, ResultadoIncidencia } from './tipos';
+import type { ConteoIncidencias, FilaIncidencia, ResultadoIncidencia } from './tipos';
 
 const SELECCION = `
   SELECT i.numero_caso AS "numeroCaso", e.codigo AS "equipoCodigo", i.descripcion, i.estado,
@@ -72,6 +72,15 @@ export function listarIncidencias(
     `${SELECCION} ${donde} ${ORDEN_RECIENTE} LIMIT ${LIMITE_LISTADO}`,
     valores,
   );
+}
+
+export async function contarIncidenciasPorEstado(): Promise<ConteoIncidencias> {
+  const filas = await consultar<{ estado: EstadoIncidencia; total: number }>(
+    'SELECT estado, COUNT(*) AS total FROM incidencias GROUP BY estado',
+  );
+  const conteo: ConteoIncidencias = { abierta: 0, en_revision: 0, cerrada: 0 };
+  for (const { estado, total } of filas) conteo[estado] = total;
+  return conteo;
 }
 
 export async function cerrarIncidencia(numeroCaso: string): Promise<void> {

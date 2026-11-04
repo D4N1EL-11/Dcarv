@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { Selector } from '@/components/ui/Selector';
@@ -17,10 +17,19 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
   const [cargando, setCargando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState('');
+  const [hecho, setHecho] = useState('');
+
+  // El mensaje de confirmación desaparece solo a los pocos segundos.
+  useEffect(() => {
+    if (!hecho) return undefined;
+    const temporizador = setTimeout(() => setHecho(''), 4000);
+    return () => clearTimeout(temporizador);
+  }, [hecho]);
 
   async function cambiar(nuevo: EstadoEquipo) {
     setCargando(true);
     setError('');
+    setHecho('');
     const respuesta = await llamarApi(
       `/api/soporte/equipos/${encodeURIComponent(codigo)}/estado`,
       'PATCH',
@@ -28,8 +37,12 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
     );
     setCargando(false);
     setConfirmando(false);
-    if (respuesta.ok) refrescar();
-    else setError(respuesta.mensaje);
+    if (respuesta.ok) {
+      setHecho(`Ahora: ${etiquetaEstadoEquipo(nuevo)}`);
+      refrescar();
+    } else {
+      setError(respuesta.mensaje);
+    }
   }
 
   return (
@@ -42,10 +55,14 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
         disabled={cargando || refrescando}
         onChange={(evento) => {
           const nuevo = evento.target.value as EstadoEquipo;
+          if (nuevo === estado) return;
           if (nuevo === 'dado_de_baja') setConfirmando(true);
           else void cambiar(nuevo);
         }}
       />
+      <p role="status" aria-live="polite" className="min-h-0 text-xs font-semibold text-funcional">
+        {hecho}
+      </p>
       {error ? (
         <p role="alert" className="text-sm text-baja">
           {error}

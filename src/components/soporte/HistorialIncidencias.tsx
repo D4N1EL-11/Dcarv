@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { FilaIncidencia, FilaTecnico } from '@/lib/dataService';
-import { formatearFecha } from '@/lib/formato';
+import { formatearFecha, textoAntiguedad } from '@/lib/formato';
+import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { AccionesIncidencia } from './AccionesIncidencia';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
 
@@ -16,6 +17,7 @@ type Props = {
 export function HistorialIncidencias({ incidencias, tecnicos, mostrarEquipo, textoVacio }: Props) {
   if (!incidencias.length) return <EstadoVacio titulo={textoVacio} />;
   const activos = tecnicos.filter((t) => t.activo).map(({ id, nombre }) => ({ id, nombre }));
+  const hoy = hoyBogota();
   return (
     <ul className="grid gap-3">
       {incidencias.map((incidencia) => (
@@ -27,6 +29,9 @@ export function HistorialIncidencias({ incidencias, tecnicos, mostrarEquipo, tex
                 <InsigniaEstadoIncidencia estado={incidencia.estado} />
                 <span className="text-sm text-texto-suave">
                   {formatearFecha(incidencia.fecha)}
+                  {incidencia.estado !== 'cerrada'
+                    ? ` · reportada ${textoAntiguedad(diasEntre(incidencia.fecha, hoy))}`
+                    : ''}
                 </span>
               </div>
               {mostrarEquipo ? (
@@ -37,7 +42,7 @@ export function HistorialIncidencias({ incidencias, tecnicos, mostrarEquipo, tex
                   {incidencia.equipoCodigo}
                 </Link>
               ) : null}
-              <p className="text-sm">{incidencia.descripcion}</p>
+              <p className="text-sm whitespace-pre-line break-words">{incidencia.descripcion}</p>
               {incidencia.tecnico ? (
                 <p className="text-sm text-texto-suave">Técnico: {incidencia.tecnico}</p>
               ) : null}

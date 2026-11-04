@@ -12,7 +12,7 @@ import { consultarHistorial } from './incidencias';
 import { obtenerSalaActiva } from './salas';
 import type { DetalleEquipo, FilaEquipo } from './tipos';
 
-const COLUMNAS = `codigo, sala_nombre AS sala, estado, incidencias_30d AS "incidencias30d"`;
+const COLUMNAS = `codigo, sala_id AS "salaId", sala_nombre AS sala, estado, incidencias_30d AS "incidencias30d"`;
 
 export function listarEquipos(
   f: { salaId?: string | undefined; estado?: EstadoEquipo | undefined; busqueda?: string | undefined } = {},

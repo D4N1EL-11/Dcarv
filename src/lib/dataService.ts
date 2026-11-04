@@ -10,6 +10,7 @@ export {
 } from '@/lib/datos/equipos';
 export {
 	cerrarIncidencia,
+	contarIncidenciasPorEstado,
 	historialDeEquipo,
 	listarIncidencias,
 	reportarIncidencia,
@@ -22,6 +23,7 @@ export {
 	reasignarIncidenciasVencidas,
 } from '@/lib/datos/tecnicos';
 export type {
+	ConteoIncidencias,
 	DetalleEquipo,
 	EstadoEquipo,
 	EstadoIncidencia,

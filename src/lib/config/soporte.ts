@@ -5,3 +5,4 @@ export const INCIDENCIAS_PARA_ALERTA = 3; // RN-09
 export const DIAS_REASIGNACION = 5; // RN-10 (F5)
 export const ZONA_HORARIA = 'America/Bogota';
 export const LIMITE_LISTADO = 500;
+export const MAXIMO_LOTE_EQUIPOS = 50; // registro de varios equipos a la vez

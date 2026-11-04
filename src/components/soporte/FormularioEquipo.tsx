@@ -9,10 +9,15 @@ import { Selector } from '@/components/ui/Selector';
 import { llamarApi } from '@/lib/clienteApi';
 import { esquemaEquipo } from '@/lib/validacion/esquemas';
 
-export function FormularioEquipo({ salas }: { salas: { id: string; nombre: string }[] }) {
+type Props = {
+  salas: { id: string; nombre: string }[];
+  salaInicial?: string | undefined;
+};
+
+export function FormularioEquipo({ salas, salaInicial = '' }: Props) {
   const router = useRouter();
   const [codigo, setCodigo] = useState('');
-  const [salaId, setSalaId] = useState('');
+  const [salaId, setSalaId] = useState(salaInicial);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 

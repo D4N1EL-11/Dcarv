@@ -92,8 +92,13 @@ export async function reasignarIncidenciasVencidas(): Promise<{ reasignadas: num
 
 // RN-09: se recuenta con hoyBogota(); el conteo de v_equipos depende de la zona de la base.
 export async function listarCandidatosABaja(): Promise<FilaCandidato[]> {
-  const filas = await consultar<{ codigo: string; sala: string; fecha: string }>(
-    `SELECT e.codigo, s.nombre AS sala, i.fecha
+  const filas = await consultar<{
+    codigo: string;
+    sala: string;
+    estado: FilaCandidato['estado'];
+    fecha: string;
+  }>(
+    `SELECT e.codigo, s.nombre AS sala, e.estado, i.fecha
        FROM equipos e
        JOIN salas s ON s.id = e.sala_id
        JOIN incidencias i ON i.equipo_id = e.id
@@ -102,11 +107,14 @@ export async function listarCandidatosABaja(): Promise<FilaCandidato[]> {
   );
   const hoy = hoyBogota();
   const porEquipo = new Map<string, FilaCandidato>();
-  for (const { codigo, sala, fecha } of filas) {
+  for (const { codigo, sala, estado, fecha } of filas) {
     if (!dentroDeVentana(fecha, hoy, DIAS_VENTANA_ALERTA)) continue;
-    const fila = porEquipo.get(codigo) ?? { codigo, sala, incidencias30d: 0 };
+    const fila = porEquipo.get(codigo) ?? { codigo, sala, estado, incidencias30d: 0 };
     fila.incidencias30d += 1;
     porEquipo.set(codigo, fila);
   }
-  return [...porEquipo.values()].filter((f) => esCandidatoABaja(f.incidencias30d));
+  // Los más críticos primero.
+  return [...porEquipo.values()]
+    .filter((f) => esCandidatoABaja(f.incidencias30d))
+    .sort((a, b) => b.incidencias30d - a.incidencias30d || a.codigo.localeCompare(b.codigo));
 }

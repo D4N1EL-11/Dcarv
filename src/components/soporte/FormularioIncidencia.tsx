@@ -8,9 +8,19 @@ import { Modal } from '@/components/ui/Modal';
 import { useRefrescar } from '@/hooks/use-refrescar';
 import { llamarApi } from '@/lib/clienteApi';
 import type { ResultadoIncidencia } from '@/lib/datos/tipos';
+import type { EstadoEquipo } from '@/lib/reglas/equipo';
 import { esquemaIncidencia } from '@/lib/validacion/esquemas';
 
-export function FormularioIncidencia({ codigo }: { codigo: string }) {
+const MAXIMO = 1000;
+
+// RN-06: se anticipa al usuario qué pasará con el estado del equipo.
+const EFECTO: Record<EstadoEquipo, string> = {
+  funcional: 'Al reportar, el equipo pasará a "En reparación".',
+  en_reparacion: 'El equipo ya está "En reparación"; la incidencia se suma a su historial.',
+  dado_de_baja: 'El equipo está dado de baja: la incidencia se registra y el equipo sigue dado de baja.',
+};
+
+export function FormularioIncidencia({ codigo, estado }: { codigo: string; estado: EstadoEquipo }) {
   const { refrescar, refrescando } = useRefrescar();
   const [abierto, setAbierto] = useState(false);
   const [descripcion, setDescripcion] = useState('');
@@ -46,27 +56,32 @@ export function FormularioIncidencia({ codigo }: { codigo: string }) {
   }
 
   return (
-    <div className="grid gap-3">
-      <div>
-        <Boton onClick={() => setAbierto(true)}>
-          Reportar incidencia
-        </Boton>
-      </div>
-            {abierto ? (
+    <>
+      <Boton onClick={() => setAbierto(true)}>Reportar incidencia</Boton>
+      {abierto ? (
         <Modal titulo={`Reportar incidencia en ${codigo}`} alCerrar={cerrar}>
           <form onSubmit={enviar} className="grid gap-3" noValidate>
             <CampoTexto
               etiqueta="Descripción de la falla"
+              placeholder="Ej.: No enciende; la pantalla queda en negro."
               value={descripcion}
-              maxLength={1000}
+              maxLength={MAXIMO}
+              autoFocus
               error={descripcion ? problema : error || undefined}
               onChange={(evento) => {
                 setDescripcion(evento.target.value);
                 setError('');
               }}
             />
+            <p className="-mt-2 text-right text-xs text-texto-suave">
+              {descripcion.length}/{MAXIMO}
+            </p>
+            <p className="text-sm text-texto-suave">{EFECTO[estado]}</p>
             {descripcion && error ? <Aviso tipo="error">{error}</Aviso> : null}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Boton variante="secundario" onClick={cerrar}>
+                Cancelar
+              </Boton>
               <Boton type="submit" cargando={cargando || refrescando}>
                 Reportar
               </Boton>
@@ -74,6 +89,6 @@ export function FormularioIncidencia({ codigo }: { codigo: string }) {
           </form>
         </Modal>
       ) : null}
-    </div>
+    </>
   );
 }

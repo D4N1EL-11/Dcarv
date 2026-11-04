@@ -14,6 +14,7 @@ export type FilaSala = {
 
 export type FilaEquipo = {
   codigo: string;
+  salaId: string;
   sala: string;
   estado: EstadoEquipo;
   incidencias30d: number;
@@ -32,6 +33,13 @@ export type DetalleEquipo = { equipo: FilaEquipo; historial: FilaIncidencia[] };
 
 export type ResultadoIncidencia = { incidencia: FilaIncidencia; estadoEquipo: EstadoEquipo };
 
-export type FilaCandidato = { codigo: string; sala: string; incidencias30d: number };
+export type FilaCandidato = {
+  codigo: string;
+  sala: string;
+  estado: EstadoEquipo;
+  incidencias30d: number;
+};
+
+export type ConteoIncidencias = Record<EstadoIncidencia, number>;
 
 export type FilaTecnico = { id: string; nombre: string; activo: boolean; enRevision: number };
