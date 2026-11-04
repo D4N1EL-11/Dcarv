@@ -124,3 +124,11 @@ Pedido del estudiante: mejorar la página según los objetivos del plan. Se mant
 - Reglas y formato puros con pruebas: `generarCodigos` (en `lib/reglas/equipo.ts`, 8 pruebas), `textoAntiguedad`, `porcentaje` y `plural` (en `lib/formato.ts`, `tests/formato.test.ts`).
 - Resultados: `tsc --noEmit` sin errores; `npm test` 58/58; `npm run build` exitoso. Con `next start` contra la base real y sesión iniciada, las 12 páginas revisadas responden 200 con el contenido esperado. El equipo inexistente responde 200 con `noindex` y la página "No existe un equipo con ese código": es el comportamiento de Next con streaming (`loading.tsx`).
 - No desplegado todavía.- Publicado en producción el 2026-11-04 (`dcarv-rerkkv8zk-daniel-carvajalino.vercel.app`, alias `https://dcarv.vercel.app`), a pedido del estudiante. Verificado: sin sesión `/` y `/soporte` → 307 y `/api/soporte/sesion` → 401; con sesión, las 12 páginas responden 200 con el contenido esperado.
+### Push a GitHub (2026-11-04)
+
+- Se instalaron Git y GitHub CLI (`winget`); inicio de sesión en GitHub (cuenta `D4N1EL-11`) por código de dispositivo.
+- Repositorio: `D4N1EL-11/Dcarv` (público, rama `main`). Se clonó en una carpeta temporal, se copió esta carpeta encima (sin `node_modules`, `.next`, `.vercel` ni `.env.local`) y se comprobó que las diferencias reales eran solo las de estas sesiones: 33 archivos modificados y 17 nuevos. El resto eran finales de línea.
+- Antes del commit se revisaron las líneas añadidas en busca de contraseñas, cadenas de conexión, tokens JWT, claves y correos: ninguno.
+- Commit `cbb7643` "feat(soporte): cierre del plan y mejoras de la interfaz" (autor Daniel Carvajalino), push `b933501..cbb7643` a `main`.
+- Vercel desplegó desde git: `dcarv-jmxi75g16`, Ready, Production, alias `https://dcarv.vercel.app`. Producción y GitHub quedaron alineados.
+- Esta carpeta de OneDrive sigue sin ser un repositorio git; esta entrada de la bitácora es el único cambio pendiente de subir.- Después del push, esta carpeta se convirtió en repositorio git conectado a `D4N1EL-11/Dcarv` (`git init`, remoto `origin`, `git reset origin/main` sin tocar archivos, `main` sigue a `origin/main`). Al conectarla, la única diferencia real era esta bitácora. `.env.local`, `node_modules`, `.next` y `.vercel` siguen ignorados.
