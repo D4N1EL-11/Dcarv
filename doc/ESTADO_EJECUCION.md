@@ -184,3 +184,9 @@ Pedido del estudiante: que la página se vea más profesional. Solo cambios de p
 - Marca y detalles: favicon con el monograma dorado (antes el ícono azul de la plantilla), 404 y error 500 con la identidad de la app, fecha larga en el panel ("jueves, 5 de noviembre de 2026") y sin el botón flotante de desarrollo de Next (`devIndicators: false`).
 - Defecto encontrado en las capturas y corregido: la animación de entrada dejaba un `transform` aplicado (`fill-mode: both`) y el fondo de los diálogos no cubría la barra superior. Ahora es `backwards`.
 - Verificado con capturas en Edge (login de escritorio y de celular, panel, incidencias, técnicos, diálogo y 404), sin errores de consola. `npm test` 89/89; `tsc` y ESLint sin errores.
+
+### Publicación (2026-11-05)
+
+- A pedido del estudiante, dos commits sobre `main`: `517a21b` (corrección del CI en `eslint.config.mjs`) y `5b9b676` (las tres rondas de mejoras). Push `6f35001..5b9b676`. Antes se revisaron las líneas añadidas en busca de secretos: ninguno.
+- GitHub Actions: por primera vez todos los pasos en verde (lint, type-check, test y build).
+- Vercel: "Deployment has completed". Verificado en `https://dcarv.vercel.app`: `/login` responde 200 con la pantalla dividida; encabezados de seguridad presentes; sin sesión, `/soporte/alertas` redirige a `/login?siguiente=…` y `/api/soporte/buscar` responde 401; `robots.txt` con la URL real; favicon dorado; 404 con la identidad de la app.
