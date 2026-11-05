@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
+import { DESTINO_POR_DEFECTO } from '@/lib/auth/redireccion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 type Errores = { email?: string | undefined; password?: string | undefined; confirmacion?: string | undefined };
 
 export default function RegisterPage() {
+	const router = useRouter();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [confirmacion, setConfirmacion] = useState('');
 	const [errores, setErrores] = useState<Errores>({});
 	const [errorGeneral, setErrorGeneral] = useState('');
-	const [creada, setCreada] = useState<null | { requiereConfirmacion: boolean }>(null);
+	const [creada, setCreada] = useState(false);
 	const [enviando, setEnviando] = useState(false);
 
 	function validar(): Errores {
@@ -44,13 +47,19 @@ export default function RegisterPage() {
 			});
 			const resultado = (await respuesta.json().catch(() => ({}))) as {
 				error?: string;
-				data?: { confirmationRequired?: boolean };
+				data?: { sesionIniciada?: boolean };
 			};
 			if (!respuesta.ok) {
 				setErrorGeneral(resultado.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.');
 				return;
 			}
-			setCreada({ requiereConfirmacion: Boolean(resultado.data?.confirmationRequired) });
+			// La cuenta queda activa al instante y con la sesión iniciada: no hay correo que esperar.
+			if (resultado.data?.sesionIniciada) {
+				router.replace(DESTINO_POR_DEFECTO);
+				router.refresh();
+				return;
+			}
+			setCreada(true);
 		} catch {
 			setErrorGeneral('No hay conexión con el servidor. Inténtalo de nuevo.');
 		} finally {
@@ -63,11 +72,7 @@ export default function RegisterPage() {
 			<MarcoAcceso
 				etiqueta="Registro completado"
 				titulo="Tu cuenta está lista"
-				descripcion={
-					creada.requiereConfirmacion
-						? 'Te enviamos un correo para confirmar la dirección. Ábrelo y luego inicia sesión.'
-						: 'Ya puedes iniciar sesión con tu correo y contraseña.'
-				}
+				descripcion="Ya puedes iniciar sesión con tu correo y contraseña."
 			>
 				<Link
 					href="/login"
