@@ -96,8 +96,8 @@ export function ChangePasswordForm({ email }: { email: string }) {
 				value={confirmPassword}
 				onChange={(event) => setConfirmPassword(event.target.value)}
 			/>
-			{error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
-			{notice ? <p role="status" className="text-sm text-emerald-700">{notice}</p> : null}
+			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
+			{notice ? <p role="status" className="text-sm text-funcional">{notice}</p> : null}
 			<div>
 				<Button type="submit" loading={saving}>Actualizar contraseña</Button>
 			</div>

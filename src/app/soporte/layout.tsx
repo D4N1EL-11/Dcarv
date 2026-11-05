@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { NavegacionSoporte } from '@/components/soporte/NavegacionSoporte';
 import { obtenerSesion } from '@/lib/auth/sesion';
-import { listarCandidatosABaja } from '@/lib/dataService';
+import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // El contador del menú es informativo: si la consulta falla, la navegación sigue funcionando.
 async function contarAlertas(): Promise<number> {
   try {
-    return (await listarCandidatosABaja()).length;
+    return (await candidatosDeLaPeticion()).length;
   } catch (error) {
     console.error(error);
     return 0;
@@ -33,7 +33,7 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
         Saltar al contenido
       </a>
       <NavegacionSoporte email={sesion.email} alertas={alertas} />
-      <main id="contenido" tabIndex={-1} className="mx-auto grid max-w-6xl gap-6 px-4 py-6 focus:outline-none">
+      <main id="contenido" tabIndex={-1} className="mx-auto grid max-w-6xl gap-10 px-4 py-10 focus:outline-none">
         {children}
       </main>
     </div>

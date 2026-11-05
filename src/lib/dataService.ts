@@ -1,26 +1,31 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 export { cerrarConexion } from '@/lib/db/conexion';
-export { crearSala, listarSalas } from '@/lib/datos/salas';
+export { crearSala, eliminarSala, listarSalas, renombrarSala } from '@/lib/datos/salas';
 export {
 	cambiarEstadoEquipo,
 	crearEquipo,
 	listarEquipos,
 	obtenerEquipo,
+	paginarEquipos,
 } from '@/lib/datos/equipos';
 export {
 	cerrarIncidencia,
 	contarIncidenciasPorEstado,
 	historialDeEquipo,
 	listarIncidencias,
+	paginarIncidencias,
 	reportarIncidencia,
 } from '@/lib/datos/incidencias';
+export type { FiltrosIncidencias } from '@/lib/datos/incidencias';
 export {
 	asignarTecnico,
+	cambiarActividadTecnico,
 	crearTecnico,
 	listarCandidatosABaja,
 	listarTecnicos,
 	reasignarIncidenciasVencidas,
+	renombrarTecnico,
 } from '@/lib/datos/tecnicos';
 export type {
 	ConteoIncidencias,
@@ -32,6 +37,9 @@ export type {
 	FilaIncidencia,
 	FilaSala,
 	FilaTecnico,
+	Pagina,
+	ResultadoActividad,
+	ResultadoCierre,
 	ResultadoIncidencia,
 } from '@/lib/datos/tipos';
 

@@ -34,18 +34,17 @@ export function NavegacionSoporte({ email, alertas }: Props) {
   const activo = (href: string) => (href === '/soporte' ? ruta === href : ruta.startsWith(href));
 
   return (
-    <header className="sticky top-0 z-40 bg-primario text-white shadow-sm print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/soporte" className="flex items-center gap-2 font-bold">
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="12" rx="2" />
-            <path d="M8 20h8M12 16v4" />
-          </svg>
-          Soporte de Salas
+    <header className="sticky top-0 z-40 bg-fondo/85 text-texto backdrop-blur-md print:hidden">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-4">
+        <Link href="/soporte" className="group flex items-center gap-3">
+          <span className="grid size-8 place-items-center rounded-full border border-primario/50 font-titulo text-lg font-semibold text-primario transition group-hover:border-primario">
+            D
+          </span>
+          <span className="font-titulo text-xl font-semibold tracking-wide text-primario">Soporte de Salas</span>
         </Link>
         <button
           type="button"
-          className="rounded-lg border border-white/40 px-3 py-1 text-sm md:hidden"
+          className="rounded-lg border border-borde px-3 py-1.5 text-sm text-texto-suave transition hover:border-primario/60 hover:text-primario md:hidden"
           aria-expanded={abierto}
           aria-controls="menu-soporte"
           onClick={() => setAbierto((valor) => !valor)}
@@ -54,19 +53,19 @@ export function NavegacionSoporte({ email, alertas }: Props) {
         </button>
         <div
           id="menu-soporte"
-          className={`${abierto ? 'flex' : 'hidden'} absolute left-0 right-0 top-full z-40 flex-col gap-1 bg-primario p-4 shadow-md md:static md:flex md:flex-1 md:flex-row md:items-center md:justify-between md:p-0 md:shadow-none`}
+          className={`${abierto ? 'flex' : 'hidden'} absolute left-0 right-0 top-full z-40 flex-col gap-1 border-b border-borde bg-fondo p-4 shadow-2xl shadow-black/50 md:static md:flex md:flex-1 md:flex-row md:items-center md:justify-between md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
         >
-          <nav aria-label="Principal" className="flex flex-col gap-1 md:flex-row">
+          <nav aria-label="Principal" className="flex flex-col gap-1 md:flex-row md:gap-0">
             {ENLACES.map(({ href, texto }) => (
               <Link
                 key={href}
                 href={href}
                 aria-current={activo(href) ? 'page' : undefined}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm hover:bg-white/15 ${activo(href) ? 'bg-white/20 font-semibold' : ''}`}
+                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition hover:text-texto md:after:absolute md:after:inset-x-3 md:after:-bottom-[1.05rem] md:after:h-px md:after:transition ${activo(href) ? 'text-primario md:after:bg-primario' : 'text-texto-suave md:after:bg-transparent'}`}
               >
                 {texto}
                 {href === '/soporte/alertas' && alertas > 0 ? (
-                  <span className="rounded-full bg-white px-1.5 text-xs font-bold text-baja">
+                  <span className="rounded-full border border-baja/40 bg-baja/15 px-1.5 text-xs font-semibold text-baja">
                     {alertas}
                     <span className="sr-only">
                       {alertas === 1 ? ' equipo candidato a baja' : ' equipos candidatos a baja'}
@@ -76,21 +75,17 @@ export function NavegacionSoporte({ email, alertas }: Props) {
               </Link>
             ))}
           </nav>
-          <div className="mt-2 flex items-center justify-between gap-3 md:mt-0">
-            <span className="truncate text-sm text-white/85" title={email}>
+          <div className="mt-2 flex items-center justify-between gap-4 md:mt-0">
+            <span className="truncate text-xs text-texto-suave" title={email}>
               {email}
             </span>
-            <Boton
-              variante="secundario"
-              className="shrink-0"
-              cargando={saliendo}
-              onClick={cerrarSesion}
-            >
+            <Boton variante="secundario" className="shrink-0 px-3! py-1.5! text-xs!" cargando={saliendo} onClick={cerrarSesion}>
               Cerrar sesión
             </Boton>
           </div>
         </div>
       </div>
+      <div aria-hidden="true" className="linea-dorada" />
     </header>
   );
 }

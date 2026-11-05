@@ -36,8 +36,8 @@ export function FormularioRecuperacion({ emailInicial }: { emailInicial: string 
 		<>
 			<form className="mt-8 grid gap-5" onSubmit={enviarSolicitud}>
 				<Input id="email-recuperacion" label="Correo electrónico" type="email" autoComplete="email" placeholder="nombre@dcarv.com" required value={email} onChange={(evento) => setEmail(evento.target.value)} />
-				{error ? <p role="alert" className="text-sm text-[#bd4a36]">{error}</p> : null}
-				{mensaje ? <p role="status" className="text-sm text-emerald-700">{mensaje}</p> : null}
+				{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
+				{mensaje ? <p role="status" className="text-sm text-funcional">{mensaje}</p> : null}
 				<Button type="submit" size="lg" className="w-full" loading={procesando}>Enviar enlace</Button>
 			</form>
 			<p className="mt-5 text-center text-sm"><Link href="/login" className="font-medium text-[var(--accent)] hover:underline">Volver al inicio de sesión</Link></p>

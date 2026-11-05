@@ -18,6 +18,7 @@
     "db:limpiar": "node scripts/limpiar-prueba.mjs",
     "probar:flujo": "tsx --env-file=.env.local scripts/probar-flujo.ts",
     "probar:opcionales": "tsx --env-file=.env.local scripts/probar-opcionales.ts",
+    "probar:mejoras": "tsx --env-file=.env.local scripts/probar-mejoras.ts",
     "db:demo": "tsx --env-file=.env.local scripts/cargar-demo.ts"
   },
   "dependencies": {

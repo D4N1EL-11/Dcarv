@@ -11,7 +11,11 @@ function rechazar(request: NextRequest) {
       { status: 401, headers: { 'Cache-Control': 'no-store' } },
     );
   }
-  return NextResponse.redirect(new URL('/login', request.url));
+  // Se recuerda a dónde iba el usuario para volver ahí después de iniciar sesión.
+  const destino = new URL('/login', request.url);
+  const { pathname, search } = request.nextUrl;
+  if (pathname.startsWith('/soporte')) destino.searchParams.set('siguiente', `${pathname}${search}`);
+  return NextResponse.redirect(destino);
 }
 
 export async function middleware(request: NextRequest) {

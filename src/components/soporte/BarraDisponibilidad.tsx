@@ -5,7 +5,7 @@ export function BarraDisponibilidad({ funcionales, enReparacion, dadosDeBaja }: 
   const total = funcionales + enReparacion + dadosDeBaja;
   const ancho = (cantidad: number) => `${total ? (cantidad / total) * 100 : 0}%`;
   return (
-    <div aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-borde">
+    <div aria-hidden="true" className="flex h-1 overflow-hidden rounded-full bg-borde">
       <span className="bg-funcional" style={{ width: ancho(funcionales) }} />
       <span className="bg-reparacion" style={{ width: ancho(enReparacion) }} />
       <span className="bg-baja" style={{ width: ancho(dadosDeBaja) }} />

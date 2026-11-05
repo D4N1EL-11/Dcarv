@@ -1,23 +1,12 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
+import { DESTINO_POR_DEFECTO, rutaSegura } from '@/lib/auth/redireccion';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
-
-const loginTheme = {
-	'--bg-primary': '#f3efe7',
-	'--bg-secondary': '#fffdf8',
-	'--text-primary': '#172033',
-	'--text-secondary': '#657086',
-	'--line': 'rgba(23, 32, 51, 0.15)',
-	'--accent': '#e15f3d',
-	'--accent-soft': 'rgba(225, 95, 61, 0.12)',
-	fontFamily: "'Avenir Next', 'Segoe UI', sans-serif",
-} as CSSProperties;
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -27,9 +16,14 @@ export default function LoginPage() {
 	const [passwordError, setPasswordError] = useState('');
 	const [authError, setAuthError] = useState('');
 	const [restablecimientoAviso, setRestablecimientoAviso] = useState(false);
+	const [sesionExpirada, setSesionExpirada] = useState(false);
+	const [destino, setDestino] = useState(DESTINO_POR_DEFECTO);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	useEffect(() => {
-		setRestablecimientoAviso(new URLSearchParams(window.location.search).get('restablecida') === '1');
+		const parametros = new URLSearchParams(window.location.search);
+		setRestablecimientoAviso(parametros.get('restablecida') === '1');
+		setSesionExpirada(parametros.get('expirada') === '1');
+		setDestino(rutaSegura(parametros.get('siguiente')));
 	}, []);
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
@@ -61,7 +55,7 @@ export default function LoginPage() {
 				setAuthError(response.status === 401 ? 'Correo o contraseña incorrectos' : result.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.');
 				return;
 			}
-			router.replace('/soporte');
+			router.replace(destino);
 			router.refresh();
 		} finally {
 			setIsSubmitting(false);
@@ -69,92 +63,82 @@ export default function LoginPage() {
 	}
 
 	return (
-		<main
-			className="grid min-h-screen place-items-center bg-[var(--bg-primary)] py-10 text-[var(--text-primary)]"
-			style={loginTheme}
+		<MarcoAcceso
+			etiqueta="Acceso al sistema"
+			titulo="Bienvenido de nuevo"
+			descripcion="Inicia sesión para revisar tus salas y equipos."
+			pie={
+				<>
+					¿Aún no tienes cuenta?{' '}
+					<Link href="/register" className={CLASES_ENLACE_DORADO}>
+						Crear cuenta
+					</Link>
+				</>
+			}
 		>
-			<Container maxWidth="sm" className="animate-float-in">
-				<Card className="mx-auto w-full max-w-md overflow-hidden p-0 shadow-xl shadow-[#172033]/10">
-					<div className="h-1.5 bg-[var(--accent)]" />
-					<div className="p-6 sm:p-9">
-						<div className="mb-8 flex items-center gap-3">
-							<div className="grid size-11 place-items-center rounded-xl bg-[var(--accent)] text-lg font-bold text-white">
-								D
-							</div>
-							<div>
-								<p className="text-lg font-black">DCARV</p>
-								<p className="text-xs text-[var(--text-secondary)]">Estado de salas de computación</p>
-							</div>
-						</div>
-
-						<p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-secondary)]">
-							<span className="size-2 rounded-full bg-[#e15f3d]" />
-							Acceso al sistema
-						</p>
-						<h1 className="text-3xl font-black">Bienvenido de nuevo</h1>
-						<p className="mt-2 text-sm text-[var(--text-secondary)]">
-							Inicia sesión para revisar tus salas y equipos.
-						</p>
-						{restablecimientoAviso ? <p role="status" className="mt-4 text-sm text-emerald-700">La contraseña se restableció correctamente. Inicia sesión con tu nueva contraseña.</p> : null}
-
-						<form className="mt-8 grid gap-5" onSubmit={submit} noValidate>
-							<Input
-								id="email"
-								label="Correo electrónico"
-								type="email"
-								autoComplete="email"
-								placeholder="nombre@dcarv.com"
-								className="w-full min-w-0"
-								value={email}
-								error={emailError}
-								onChange={(event) => {
-									setEmail(event.target.value);
-									setEmailError('');
-									setAuthError('');
-								}}
-							/>
-							<div className="grid gap-2">
-								<Input
-									id="password"
-									label="Contraseña"
-									type="password"
-									autoComplete="current-password"
-									placeholder="Tu contraseña"
-									className="w-full min-w-0"
-									value={password}
-									error={passwordError}
-									onChange={(event) => {
-										setPassword(event.target.value);
-										setPasswordError('');
-										setAuthError('');
-									}}
-								/>
-								<div className="text-right">
-									<Link
-										href={email.trim() ? `/recuperar-contrasena?email=${encodeURIComponent(email.trim())}` : '/recuperar-contrasena'}
-										className="text-sm font-medium text-[var(--accent)] hover:underline"
-									>
-										¿Olvidaste tu contraseña?
-									</Link>
-								</div>
-							</div>
-
-							{authError ? (
-								<p className="-mt-1 text-sm text-[#bd4a36]" role="alert">
-									{authError}
-								</p>
-							) : null}
-
-							<Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-								{isSubmitting ? 'Entrando...' : 'Entrar'}
-							</Button>
-						</form>
-					</div>
-				</Card>
-				<p className="mt-6 text-center text-xs text-[var(--text-secondary)]">
-					Dcarv · Monitoreo de salas de computación
+			{sesionExpirada ? (
+				<p role="status" className="mt-6 rounded-lg border border-reparacion/30 bg-reparacion/10 px-4 py-3 text-sm text-reparacion">
+					Tu sesión expiró. Inicia sesión de nuevo para continuar donde estabas.
 				</p>
-			</Container>
-		</main>
+			) : null}
+			{restablecimientoAviso ? (
+				<p role="status" className="mt-6 rounded-lg border border-funcional/30 bg-funcional/10 px-4 py-3 text-sm text-funcional">
+					La contraseña se restableció correctamente. Inicia sesión con tu nueva contraseña.
+				</p>
+			) : null}
+
+			<form className="mt-8 grid gap-5" onSubmit={submit} noValidate>
+				<Input
+					id="email"
+					label="Correo electrónico"
+					type="email"
+					autoComplete="email"
+					placeholder="nombre@dcarv.com"
+					className="w-full min-w-0"
+					value={email}
+					error={emailError}
+					onChange={(event) => {
+						setEmail(event.target.value);
+						setEmailError('');
+						setAuthError('');
+					}}
+				/>
+				<div className="grid gap-2">
+					<Input
+						id="password"
+						label="Contraseña"
+						type="password"
+						autoComplete="current-password"
+						placeholder="Tu contraseña"
+						className="w-full min-w-0"
+						value={password}
+						error={passwordError}
+						onChange={(event) => {
+							setPassword(event.target.value);
+							setPasswordError('');
+							setAuthError('');
+						}}
+					/>
+					<div className="text-right">
+						<Link
+							href={email.trim() ? `/recuperar-contrasena?email=${encodeURIComponent(email.trim())}` : '/recuperar-contrasena'}
+							className={`text-xs ${CLASES_ENLACE_DORADO}`}
+						>
+							¿Olvidaste tu contraseña?
+						</Link>
+					</div>
+				</div>
+
+				{authError ? (
+					<p className="-mt-1 text-sm text-baja" role="alert">
+						{authError}
+					</p>
+				) : null}
+
+				<Button type="submit" size="lg" className="mt-1 w-full" disabled={isSubmitting}>
+					{isSubmitting ? 'Entrando...' : 'Entrar'}
+				</Button>
+			</form>
+		</MarcoAcceso>
 	);
 }

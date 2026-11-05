@@ -16,3 +16,13 @@ export function diasEntre(desde: string, hasta: string): number {
 export function dentroDeVentana(fecha: string, hoy: string, dias: number): boolean {
   return diasEntre(fecha, hoy) <= dias;
 }
+
+export function sumarDias(fecha: string, dias: number): string {
+  return new Date(aUtc(fecha) + dias * 86_400_000).toISOString().slice(0, 10);
+}
+
+// Primer día que todavía cuenta en una ventana de `dias` días que termina hoy.
+// Equivale a dentroDeVentana y permite filtrar en SQL con la fecha de Bogotá como parámetro.
+export function inicioVentana(hoy: string, dias: number): string {
+  return sumarDias(hoy, -dias);
+}

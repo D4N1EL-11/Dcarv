@@ -58,6 +58,19 @@ export async function conTransaccion<T>(trabajo: (tx: PoolClient) => Promise<T>)
   }
 }
 
+// Arma la lista de valores de una consulta: p(valor) agrega el valor y devuelve su marcador ($n).
+// Así ningún dato se concatena en el SQL (sección 15 del plan).
+export function crearParametros() {
+  const valores: unknown[] = [];
+  return {
+    valores,
+    p(valor: unknown): string {
+      valores.push(valor);
+      return `$${valores.length}`;
+    },
+  };
+}
+
 export async function cerrarConexion(): Promise<void> {
   await globalParaPool.poolSoporte?.end();
   delete globalParaPool.poolSoporte;

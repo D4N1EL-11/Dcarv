@@ -6,3 +6,5 @@ export const DIAS_REASIGNACION = 5; // RN-10 (F5)
 export const ZONA_HORARIA = 'America/Bogota';
 export const LIMITE_LISTADO = 500;
 export const MAXIMO_LOTE_EQUIPOS = 50; // registro de varios equipos a la vez
+export const TAMANO_PAGINA_EQUIPOS = 50; // filas por página en el panel
+export const TAMANO_PAGINA_INCIDENCIAS = 25; // tarjetas por página en el listado de incidencias

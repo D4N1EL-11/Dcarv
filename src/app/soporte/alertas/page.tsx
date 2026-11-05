@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import { PanelAlertas } from '@/components/soporte/PanelAlertas';
 import { DIAS_VENTANA_ALERTA, INCIDENCIAS_PARA_ALERTA } from '@/lib/config/soporte';
-import { listarCandidatosABaja } from '@/lib/dataService';
+import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 
 export const metadata: Metadata = { title: 'Alertas' };
 
 export default async function PaginaAlertas() {
-  const candidatos = await listarCandidatosABaja();
+  // Misma consulta que el contador del menú: React cache la ejecuta una sola vez por petición.
+  const candidatos = await candidatosDeLaPeticion();
   return (
     <>
       <div>

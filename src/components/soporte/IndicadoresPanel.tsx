@@ -19,17 +19,17 @@ function Indicador({
 }) {
   const contenido = (
     <>
-      <dt className="text-sm font-semibold text-texto-suave">{titulo}</dt>
-      <dd className={`text-3xl font-bold ${color}`}>{valor}</dd>
-      <dd className="text-xs text-texto-suave">{detalle}</dd>
+      <dt className="text-[0.7rem] font-medium uppercase tracking-[0.2em] text-texto-suave">{titulo}</dt>
+      <dd className={`mt-3 font-titulo text-5xl font-medium leading-none ${color}`}>{valor}</dd>
+      <dd className="mt-2 text-xs text-texto-suave">{detalle}</dd>
     </>
   );
-  const clases = 'grid h-full gap-1 rounded-lg border border-borde bg-superficie p-4';
+  const clases = 'grid h-full content-start rounded-xl border border-borde bg-superficie p-5';
   return enlace ? (
     <div>
       <Link
         href={enlace}
-        className={`${clases} transition hover:border-primario focus-visible:outline-2 focus-visible:outline-primario`}
+        className={`${clases} transition hover:-translate-y-0.5 hover:border-primario/50 focus-visible:outline-2 focus-visible:outline-primario`}
       >
         <dl className="contents">{contenido}</dl>
       </Link>
@@ -48,7 +48,7 @@ export function IndicadoresPanel({ salas, incidencias }: Props) {
   const pendientes = incidencias.abierta + incidencias.en_revision;
 
   return (
-    <section aria-label="Indicadores" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section aria-label="Indicadores" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Indicador
         titulo="Disponibles"
         valor={funcionales}
@@ -60,7 +60,7 @@ export function IndicadoresPanel({ salas, incidencias }: Props) {
         titulo="En reparación"
         valor={enReparacion}
         detalle="con una falla en atención"
-        color="text-[#8a5a12]"
+        color="text-reparacion"
         enlace="/soporte?estado=en_reparacion"
       />
       <Indicador

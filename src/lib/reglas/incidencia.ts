@@ -1,4 +1,5 @@
 import { ESTADOS_INCIDENCIA } from '@/lib/config/soporte';
+import type { EstadoEquipo } from './equipo';
 import { ErrorDeNegocio } from './errores';
 
 export type EstadoIncidencia = (typeof ESTADOS_INCIDENCIA)[number];
@@ -21,4 +22,10 @@ export function formatearNumeroCaso(n: number): string {
 
 export function puedeAsignarse(estado: EstadoIncidencia): boolean {
   return estado === 'abierta';
+}
+
+// Al cerrar una incidencia se ofrece devolver el equipo a "funcional" solo si estaba en
+// reparación y no le quedan otras incidencias pendientes. Nunca ocurre sin que el usuario lo pida.
+export function puedeReactivarseAlCerrar(estadoEquipo: EstadoEquipo, otrasPendientes: number): boolean {
+  return estadoEquipo === 'en_reparacion' && otrasPendientes === 0;
 }

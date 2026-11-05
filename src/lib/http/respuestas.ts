@@ -50,3 +50,14 @@ export async function leerCuerpo(request: Request): Promise<unknown> {
     throw new ErrorDeNegocio('DATOS_INVALIDOS');
   }
 }
+
+// Para rutas cuyo cuerpo es opcional (p. ej. cerrar una incidencia): sin cuerpo equivale a {}.
+export async function leerCuerpoOpcional(request: Request): Promise<unknown> {
+  const texto = await request.text();
+  if (!texto.trim()) return {};
+  try {
+    return JSON.parse(texto) as unknown;
+  } catch {
+    throw new ErrorDeNegocio('DATOS_INVALIDOS');
+  }
+}

@@ -12,13 +12,13 @@ export function Selector({ etiqueta, opciones, ocultarEtiqueta = false, ...resto
     <div className="grid gap-1">
       <label
         htmlFor={id}
-        className={ocultarEtiqueta ? 'sr-only' : 'text-sm font-semibold text-texto'}
+        className={ocultarEtiqueta ? 'sr-only' : 'text-xs font-medium uppercase tracking-wider text-texto-suave'}
       >
         {etiqueta}
       </label>
       <select
         id={id}
-        className="w-full rounded-lg border border-borde bg-superficie px-3 py-2 text-sm text-texto focus-visible:outline-2 focus-visible:outline-primario disabled:opacity-60"
+        className="w-full rounded-lg border border-borde bg-fondo/60 px-3 py-2 text-sm text-texto transition focus:border-primario/70 focus:outline-none focus:ring-2 focus:ring-primario/20 disabled:opacity-60"
         {...resto}
       >
         {opciones.map((opcion) => (

@@ -85,7 +85,7 @@ export function FiltrosEquipos({ salas, salaId = '', estado = '', busqueda = '',
             : `${plural(total, 'equipo', 'equipos')}${hayFiltros ? ' con los filtros actuales' : ' en total'}`}
         </p>
         {hayFiltros ? (
-          <Link href="/soporte" className="font-semibold text-primario underline">
+          <Link href="/soporte" className="font-medium text-primario underline-offset-4 hover:underline">
             Limpiar filtros
           </Link>
         ) : null}

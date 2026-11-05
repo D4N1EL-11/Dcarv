@@ -33,7 +33,7 @@ export function Modal({ titulo, alCerrar, children }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
       onMouseDown={(evento) => {
         if (evento.target === evento.currentTarget) cerrar.current();
       }}
@@ -44,10 +44,10 @@ export function Modal({ titulo, alCerrar, children }: Props) {
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="w-full max-w-md rounded-lg bg-superficie p-5 text-left text-texto shadow-lg focus:outline-none"
+        className="w-full max-w-md rounded-xl border border-borde bg-superficie p-6 text-left text-texto shadow-2xl shadow-black/50 focus:outline-none"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 id={idTitulo} className="text-lg font-bold">
+          <h2 id={idTitulo} className="text-2xl font-semibold">
             {titulo}
           </h2>
           <Boton variante="fantasma" onClick={() => cerrar.current()}>

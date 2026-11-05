@@ -33,13 +33,32 @@ export const esquemaFiltrosEquipos = z.object({
 export const esquemaFiltrosIncidencias = z.object({
   estado: opcional(z.enum(ESTADOS_INCIDENCIA)),
   equipoCodigo: opcional(z.string().trim().max(40)),
+  busqueda: opcional(z.string().trim().max(80)),
+  tecnicoId: opcional(z.uuid()),
 });
 
-export const esquemaTecnico = z.object({
-  nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres.').max(100),
-});
+const nombreTecnico = z
+  .string()
+  .trim()
+  .min(2, 'El nombre debe tener al menos 2 caracteres.')
+  .max(100, 'El nombre no puede pasar de 100 caracteres.');
+
+export const esquemaTecnico = z.object({ nombre: nombreTecnico });
+
+// PATCH /api/soporte/tecnicos/[id]: renombrar, activar/desactivar, o ambas cosas.
+export const esquemaActualizarTecnico = z
+  .object({ nombre: nombreTecnico.optional(), activo: z.boolean().optional() })
+  .refine((datos) => datos.nombre !== undefined || datos.activo !== undefined, {
+    message: 'Indique el nombre o el estado del técnico.',
+  });
 
 export const esquemaAsignar = z.object({ tecnicoId: z.uuid('Seleccione un técnico.') });
+
+export const esquemaCerrar = z.object({ equipoFuncional: z.boolean().optional() });
+
+// Identificador de una ruta dinámica (/salas/[id], /tecnicos/[id]). Sin esto, un id mal formado
+// llegaba a Postgres y respondía ERROR_INTERNO (500) en vez de un 400.
+export const esquemaId = z.uuid('Identificador no válido.');
 
 export type DatosSala = z.infer<typeof esquemaSala>;
 export type DatosEquipo = z.infer<typeof esquemaEquipo>;

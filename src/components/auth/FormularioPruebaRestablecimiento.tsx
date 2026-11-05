@@ -39,8 +39,8 @@ export function FormularioPruebaRestablecimiento() {
 	return (
 		<form className="mt-8 grid gap-5" onSubmit={generarEnlace}>
 			<Input id="email-prueba-restablecimiento" label="Correo registrado" type="email" autoComplete="email" required value={email} onChange={(evento) => setEmail(evento.target.value)} />
-			{error ? <p role="alert" className="text-sm text-[#bd4a36]">{error}</p> : null}
-			{enlace ? <p role="status" className="text-sm text-emerald-700">Enlace listo. Abre la página para definir una nueva contraseña.</p> : null}
+			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
+			{enlace ? <p role="status" className="text-sm text-funcional">Enlace listo. Abre la página para definir una nueva contraseña.</p> : null}
 			<Button type="submit" size="lg" className="w-full" loading={procesando}>Generar enlace local</Button>
 			{enlace ? <Link href={enlace} className="break-all font-medium text-[var(--accent)] underline">Abrir restablecimiento</Link> : null}
 		</form>

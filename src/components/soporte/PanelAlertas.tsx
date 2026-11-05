@@ -1,11 +1,14 @@
 import Link from 'next/link';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Tarjeta } from '@/components/ui/Tarjeta';
+import { DIAS_VENTANA_ALERTA } from '@/lib/config/soporte';
 import type { FilaCandidato } from '@/lib/dataService';
+import { formatearFecha, plural, textoAntiguedad } from '@/lib/formato';
+import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { InsigniaEstadoEquipo } from './InsigniaEstadoEquipo';
 import { SelectorEstadoEquipo } from './SelectorEstadoEquipo';
 
-// Cada candidato se puede revisar (historial) o dar de baja aquí mismo, con confirmación.
+// Cada candidato se puede revisar (historial e incidencias) o dar de baja aquí mismo, con confirmación.
 export function PanelAlertas({ candidatos }: { candidatos: FilaCandidato[] }) {
   if (!candidatos.length) {
     return (
@@ -14,6 +17,7 @@ export function PanelAlertas({ candidatos }: { candidatos: FilaCandidato[] }) {
       </EstadoVacio>
     );
   }
+  const hoy = hoyBogota();
   return (
     <ul className="grid gap-3">
       {candidatos.map((candidato) => (
@@ -31,10 +35,24 @@ export function PanelAlertas({ candidatos }: { candidatos: FilaCandidato[] }) {
                 <InsigniaEstadoEquipo estado={candidato.estado} />
               </div>
             </div>
-            <p className="text-sm">
-              <span className="text-2xl font-bold text-baja">{candidato.incidencias30d}</span>{' '}
-              {candidato.incidencias30d === 1 ? 'incidencia' : 'incidencias'} en 30 días
-            </p>
+            <div className="grid gap-1 text-sm">
+              <p>
+                <span className="text-2xl font-bold text-baja">{candidato.incidencias30d}</span>{' '}
+                {candidato.incidencias30d === 1 ? 'incidencia' : 'incidencias'} en {DIAS_VENTANA_ALERTA} días
+              </p>
+              <p className="text-xs text-texto-suave">
+                Último reporte: {formatearFecha(candidato.ultimaFecha)} (
+                {textoAntiguedad(diasEntre(candidato.ultimaFecha, hoy))})
+              </p>
+              <Link
+                href={`/soporte/incidencias?equipoCodigo=${encodeURIComponent(candidato.codigo)}`}
+                className="text-xs text-primario underline-offset-4 hover:underline"
+              >
+                {candidato.pendientes
+                  ? `${plural(candidato.pendientes, 'incidencia pendiente', 'incidencias pendientes')} · ver todas`
+                  : 'Sin incidencias pendientes · ver todas'}
+              </Link>
+            </div>
             <div className="grid gap-1">
               <span className="text-xs font-semibold text-texto-suave">Cambiar estado</span>
               <SelectorEstadoEquipo codigo={candidato.codigo} estado={candidato.estado} />

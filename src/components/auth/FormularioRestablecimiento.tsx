@@ -45,7 +45,7 @@ export function FormularioRestablecimiento({ token }: { token: string }) {
 		<form className="mt-8 grid gap-5" onSubmit={guardarContrasena}>
 			<Input id="contrasena-nueva" label="Nueva contraseña" type="password" autoComplete="new-password" minLength={8} helperText="Mínimo 8 caracteres." required value={contrasena} onChange={(evento) => setContrasena(evento.target.value)} />
 			<Input id="confirmacion-contrasena" label="Confirmar nueva contraseña" type="password" autoComplete="new-password" required value={confirmacion} onChange={(evento) => setConfirmacion(evento.target.value)} />
-			{error ? <p role="alert" className="text-sm text-[#bd4a36]">{error}</p> : null}
+			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
 			<Button type="submit" size="lg" className="w-full" loading={procesando}>Guardar contraseña</Button>
 		</form>
 	);

@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
-import { LIMITE_LISTADO } from '@/lib/config/soporte';
-import { conTransaccion, consultar } from '@/lib/db/conexion';
+import { DIAS_VENTANA_ALERTA, LIMITE_LISTADO } from '@/lib/config/soporte';
+import { conTransaccion, consultar, crearParametros } from '@/lib/db/conexion';
 import {
   esEstadoEquipoValido,
   normalizarCodigo,
@@ -8,32 +8,58 @@ import {
   type EstadoEquipo,
 } from '@/lib/reglas/equipo';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
+import { hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
+import { desplazamiento } from '@/lib/reglas/paginacion';
 import { consultarHistorial } from './incidencias';
+import { aPagina } from './paginar';
 import { obtenerSalaActiva } from './salas';
-import type { DetalleEquipo, FilaEquipo } from './tipos';
+import type { DetalleEquipo, FilaEquipo, Pagina } from './tipos';
 
-const COLUMNAS = `codigo, sala_id AS "salaId", sala_nombre AS sala, estado, incidencias_30d AS "incidencias30d"`;
+type FiltrosEquipos = {
+  salaId?: string | undefined;
+  estado?: EstadoEquipo | undefined;
+  busqueda?: string | undefined;
+};
 
-export function listarEquipos(
-  f: { salaId?: string | undefined; estado?: EstadoEquipo | undefined; busqueda?: string | undefined } = {},
-): Promise<FilaEquipo[]> {
+// El conteo de 30 días usa la fecha de Bogotá como parámetro (RN-09), igual que las alertas.
+// La vista v_equipos cuenta con CURRENT_DATE de la base (UTC) y entre las 19:00 y las 24:00 de
+// Colombia ya va un día adelante: la tabla y las alertas podían no coincidir.
+function seleccion(p: (valor: unknown) => string, extra = ''): string {
+  const desde = p(inicioVentana(hoyBogota(), DIAS_VENTANA_ALERTA));
+  return `SELECT ${extra} e.codigo, e.sala_id AS "salaId", s.nombre AS sala, e.estado,
+                 (SELECT COUNT(*) FROM incidencias i
+                   WHERE i.equipo_id = e.id AND i.fecha >= ${desde}::date) AS "incidencias30d"
+            FROM equipos e
+            JOIN salas s ON s.id = e.sala_id`;
+}
+
+export async function paginarEquipos(
+  f: FiltrosEquipos,
+  pagina: number,
+  tamano: number,
+): Promise<Pagina<FilaEquipo>> {
+  const { valores, p } = crearParametros();
+  // COUNT(*) OVER () se calcula antes del LIMIT: trae el total de coincidencias en la misma consulta.
+  const base = seleccion(p, 'COUNT(*) OVER () AS "totalFilas",');
   const condiciones: string[] = [];
-  const valores: unknown[] = [];
-  const filtrar = (condicion: string, valor: unknown) => {
-    valores.push(valor);
-    condiciones.push(condicion.replace('?', `$${valores.length}`));
-  };
-
-  if (f.salaId) filtrar('sala_id = ?', f.salaId);
-  if (f.estado) filtrar('estado = ?', f.estado);
+  if (f.salaId) condiciones.push(`e.sala_id = ${p(f.salaId)}`);
+  if (f.estado) condiciones.push(`e.estado = ${p(f.estado)}`);
   const busqueda = f.busqueda ? normalizarCodigo(f.busqueda) : '';
-  if (busqueda) filtrar(`codigo ILIKE ? ESCAPE '\\'`, `%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
-
+  if (busqueda) {
+    condiciones.push(`e.codigo ILIKE ${p(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`)} ESCAPE '\\'`);
+  }
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
-  return consultar<FilaEquipo>(
-    `SELECT ${COLUMNAS} FROM v_equipos ${donde} ORDER BY codigo LIMIT ${LIMITE_LISTADO}`,
+  const filas = await consultar<FilaEquipo & { totalFilas: number }>(
+    `${base} ${donde} ORDER BY e.codigo
+      LIMIT ${p(tamano)} OFFSET ${p(desplazamiento(pagina, tamano))}`,
     valores,
   );
+  return aPagina(filas, pagina, tamano);
+}
+
+// Listado sin paginar (API y scripts): conserva el tope de seguridad LIMITE_LISTADO.
+export async function listarEquipos(f: FiltrosEquipos = {}): Promise<FilaEquipo[]> {
+  return (await paginarEquipos(f, 1, LIMITE_LISTADO)).filas;
 }
 
 export async function crearEquipo(d: {
@@ -53,10 +79,9 @@ export async function crearEquipo(d: {
 
 export async function obtenerEquipo(codigo: string): Promise<DetalleEquipo> {
   const limpio = normalizarCodigo(codigo);
-  const [equipo] = await consultar<FilaEquipo>(
-    `SELECT ${COLUMNAS} FROM v_equipos WHERE codigo = $1`,
-    [limpio],
-  );
+  const { valores, p } = crearParametros();
+  const base = seleccion(p);
+  const [equipo] = await consultar<FilaEquipo>(`${base} WHERE e.codigo = ${p(limpio)}`, valores);
   if (!equipo) throw new ErrorDeNegocio('EQUIPO_NO_ENCONTRADO');
   return { equipo, historial: await consultarHistorial(limpio) };
 }
