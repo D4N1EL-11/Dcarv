@@ -3,10 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import { llamarApi } from '@/lib/clienteApi';
+import { avisarNavegacion } from '@/lib/eventos';
 import { esquemaEquipo } from '@/lib/validacion/esquemas';
 
 type Props = {
@@ -16,6 +18,7 @@ type Props = {
 
 export function FormularioEquipo({ salas, salaInicial = '' }: Props) {
   const router = useRouter();
+  const { mostrar } = useAvisos();
   const [codigo, setCodigo] = useState('');
   const [salaId, setSalaId] = useState(salaInicial);
   const [error, setError] = useState('');
@@ -32,6 +35,8 @@ export function FormularioEquipo({ salas, salaInicial = '' }: Props) {
     setCargando(true);
     const respuesta = await llamarApi<{ codigo: string }>('/api/soporte/equipos', 'POST', datos.data);
     if (respuesta.ok) {
+      mostrar('exito', `Equipo ${respuesta.datos.codigo} registrado como funcional.`);
+      avisarNavegacion();
       router.push(`/soporte/equipos/${encodeURIComponent(respuesta.datos.codigo)}`);
       return;
     }

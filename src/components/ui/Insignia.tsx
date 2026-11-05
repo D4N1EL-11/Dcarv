@@ -8,11 +8,13 @@ const TONOS = {
 
 export type TonoInsignia = keyof typeof TONOS;
 
+// Estado con punto de color + texto: el significado nunca depende solo del color.
 export function Insignia({ tono = 'neutro', texto }: { tono?: TonoInsignia; texto: string }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium ${TONOS[tono]}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium ${TONOS[tono]}`}
     >
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {texto}
     </span>
   );

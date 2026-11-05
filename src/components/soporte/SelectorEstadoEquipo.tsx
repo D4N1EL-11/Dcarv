@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { Selector } from '@/components/ui/Selector';
@@ -12,24 +13,24 @@ import type { EstadoEquipo } from '@/lib/reglas/equipo';
 
 const OPCIONES = ESTADOS_EQUIPO.map((valor) => ({ valor, texto: etiquetaEstadoEquipo(valor) }));
 
-export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estado: EstadoEquipo }) {
+export function SelectorEstadoEquipo({
+  codigo,
+  estado,
+  compacto = false,
+}: {
+  codigo: string;
+  estado: EstadoEquipo;
+  compacto?: boolean;
+}) {
   const { refrescar, refrescando } = useRefrescar();
+  const { mostrar } = useAvisos();
   const [cargando, setCargando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState('');
-  const [hecho, setHecho] = useState('');
-
-  // El mensaje de confirmación desaparece solo a los pocos segundos.
-  useEffect(() => {
-    if (!hecho) return undefined;
-    const temporizador = setTimeout(() => setHecho(''), 4000);
-    return () => clearTimeout(temporizador);
-  }, [hecho]);
 
   async function cambiar(nuevo: EstadoEquipo) {
     setCargando(true);
     setError('');
-    setHecho('');
     const respuesta = await llamarApi(
       `/api/soporte/equipos/${encodeURIComponent(codigo)}/estado`,
       'PATCH',
@@ -38,7 +39,7 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
     setCargando(false);
     setConfirmando(false);
     if (respuesta.ok) {
-      setHecho(`Ahora: ${etiquetaEstadoEquipo(nuevo)}`);
+      mostrar('exito', `${codigo}: ahora está ${etiquetaEstadoEquipo(nuevo).toLowerCase()}.`);
       refrescar();
     } else {
       setError(respuesta.mensaje);
@@ -50,6 +51,7 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
       <Selector
         etiqueta={`Cambiar estado de ${codigo}`}
         ocultarEtiqueta
+        compacto={compacto}
         opciones={OPCIONES}
         value={estado}
         disabled={cargando || refrescando}
@@ -60,9 +62,6 @@ export function SelectorEstadoEquipo({ codigo, estado }: { codigo: string; estad
           else void cambiar(nuevo);
         }}
       />
-      <p role="status" aria-live="polite" className="min-h-0 text-xs font-semibold text-funcional">
-        {hecho}
-      </p>
       {error ? (
         <p role="alert" className="text-sm text-baja">
           {error}

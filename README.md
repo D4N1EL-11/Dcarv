@@ -24,6 +24,18 @@ Ayudas de la interfaz:
 - **Alertas accionables:** cada candidato a baja se puede revisar o dar de baja desde la misma pantalla; el menú muestra cuántos hay.
 - Pantallas de carga y de error propias, título por página, ícono y enlace "Saltar al contenido".
 
+Herramientas de trabajo:
+
+- **Panel con gráficos.** Actividad de los últimos 30 días (incidencias reportadas y cerradas por día, en columnas, con tooltip, navegación con teclado y tabla de datos), barra del estado del inventario y movimientos recientes.
+- **Búsqueda global (Ctrl+K o "/").** Encuentra equipos, casos, salas y técnicos desde cualquier pantalla y se maneja con el teclado.
+- **Exportar a CSV** el inventario y las incidencias, con los filtros aplicados (listo para Excel en español).
+- **Hoja de vida del equipo:** historial en línea de tiempo, traslado a otra sala e impresión en blanco y negro (o PDF).
+- **Gestión completa:** renombrar y eliminar salas vacías; activar, desactivar y renombrar técnicos (al desactivar, sus casos pasan al técnico con menos carga); cerrar incidencias con confirmación y opción de dejar el equipo funcional.
+- **Paginación** (50 equipos y 25 incidencias por página) y búsqueda por texto de la falla o por técnico.
+- **Notificaciones** tras cada acción, menú de cuenta (cambiar contraseña), página de **Ayuda y reglas** y pie de página con la hora de Colombia.
+- **Sesión vencida:** se vuelve al login y, al entrar, a la misma página.
+- **Tema oscuro con acentos dorados**, adaptado a celular.
+
 Opcionales:
 
 - **F5 · Técnicos.** Registrar técnicos y asignarlos a incidencias abiertas (pasan a "En revisión"). Las incidencias con más de 5 días sin cambio de estado se reasignan solas a otro técnico (Vercel Cron diario).
@@ -72,6 +84,7 @@ npm run dev           # http://localhost:3000 → /soporte
 | `db:demo` | Carga datos de demostración, incluido un equipo candidato a baja |
 | `probar:flujo` | Recorre los 14 pasos del flujo completo contra la base y limpia al final |
 | `probar:opcionales` | Prueba técnicos, asignación, reasignación y alertas contra la base |
+| `probar:mejoras` | Prueba contra la base paginación, búsquedas, cierre con reactivación, gestión de salas y técnicos, traslado, gráfico y alertas (30 comprobaciones) |
 | `lint` / `type-check` | ESLint y verificación de tipos |
 
 ## Estructura
@@ -95,7 +108,7 @@ src/
     └── auth/sesion.ts        # adaptador sobre el login existente
 supabase/migrations/          # SQL de las tablas, la vista y la seguridad
 scripts/                      # migrar, verificar, limpiar, demo y pruebas de flujo
-tests/reglas/                 # pruebas T-01 a T-21
+tests/reglas/                 # pruebas T-01 a T-21 y de las mejoras (npm test: 84 en total)
 doc/                          # plan, prompts, estado, aceptación y checkpoints
 ```
 
@@ -109,6 +122,10 @@ El plan funcional original guardaba todo en `datos.json` con Flask. Vercel tiene
 - Las tablas tienen RLS activo sin políticas y permisos revocados para `anon` y `authenticated`: la clave pública de Supabase no puede leerlas. Todo el acceso pasa por el servidor.
 - Toda ruta `/api/soporte/*` exige sesión; sin ella responde 401.
 - El SQL siempre va parametrizado y los errores internos no se muestran al usuario.
+- Encabezados HTTP de seguridad en todas las respuestas: `X-Frame-Options: DENY` y `frame-ancestors 'none'` (sin iframes ajenos), `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS; sin `X-Powered-By`.
+- El regreso tras iniciar sesión solo acepta rutas internas de `/soporte` (sin redirecciones abiertas).
+- Los CSV neutralizan las celdas que empiezan por `=`, `+`, `-` o `@` (inyección de fórmulas en Excel).
+- El módulo no se indexa en buscadores (`robots.txt` y `noindex`).
 
 ## Calidad
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { useRefrescar } from '@/hooks/use-refrescar';
@@ -30,13 +31,12 @@ export function AccionesTecnico({ id, nombre, activo, enRevision }: Props) {
   const [dialogo, setDialogo] = useState<'renombrar' | 'desactivar' | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
-  const [mensaje, setMensaje] = useState('');
+  const { mostrar } = useAvisos();
   const url = `/api/soporte/tecnicos/${id}`;
 
   async function cambiarActividad(nuevo: boolean) {
     setCargando(true);
     setError('');
-    setMensaje('');
     const respuesta = await llamarApi<{ actividad: ResultadoActividad }>(url, 'PATCH', { activo: nuevo });
     setCargando(false);
     setDialogo(null);
@@ -44,7 +44,8 @@ export function AccionesTecnico({ id, nombre, activo, enRevision }: Props) {
       setError(respuesta.mensaje);
       return;
     }
-    setMensaje(textoResultado(respuesta.datos.actividad));
+    const resultado = respuesta.datos.actividad;
+    mostrar(resultado.sinReasignar ? 'info' : 'exito', `${nombre}: ${textoResultado(resultado)}`);
     refrescar();
   }
 
@@ -76,9 +77,6 @@ export function AccionesTecnico({ id, nombre, activo, enRevision }: Props) {
           </Boton>
         )}
       </div>
-      <p role="status" aria-live="polite" className="text-xs text-funcional">
-        {mensaje}
-      </p>
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
 
       {dialogo === 'renombrar' ? (

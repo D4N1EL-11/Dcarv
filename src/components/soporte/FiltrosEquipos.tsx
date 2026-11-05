@@ -7,6 +7,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import { ESTADOS_EQUIPO } from '@/lib/config/soporte';
+import { avisarNavegacion } from '@/lib/eventos';
 import { etiquetaEstadoEquipo, plural } from '@/lib/formato';
 
 type Props = {
@@ -32,6 +33,7 @@ export function FiltrosEquipos({ salas, salaId = '', estado = '', busqueda = '',
       if (valor.trim()) consulta.set(nombre, valor.trim());
     }
     const texto = consulta.toString();
+    avisarNavegacion();
     iniciar(() => router.push(texto ? `/soporte?${texto}` : '/soporte', { scroll: false }));
   }
 

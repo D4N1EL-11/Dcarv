@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import {
+  actividadReciente,
   asignarTecnico,
+  buscarGlobal,
   cambiarActividadTecnico,
   cerrarConexion,
   cerrarIncidencia,
@@ -18,6 +20,8 @@ import {
   renombrarSala,
   renombrarTecnico,
   reportarIncidencia,
+  serieActividad,
+  trasladarEquipo,
 } from '@/lib/dataService';
 import { ErrorDeNegocio, type CodigoError } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
@@ -162,6 +166,51 @@ async function main() {
   await paso('Técnico inexistente → TECNICO_NO_ENCONTRADO', () =>
     falla(() => cambiarActividadTecnico(randomUUID(), false), 'TECNICO_NO_ENCONTRADO'),
   );
+
+  // Panel: serie de 30 días y movimientos recientes
+  await paso('Serie de actividad: 31 días y las de hoy contadas', async () => {
+    const serie = await serieActividad();
+    const hoy = serie.at(-1);
+    return serie.length === 31 && hoy?.dia === hoyBogota() && hoy.reportadas >= 6 && hoy.cerradas >= 3;
+  });
+  await paso('Movimientos recientes: lo último primero, con momento ISO', async () => {
+    const eventos = await actividadReciente(20);
+    const ordenados = eventos.every((e, i) => i === 0 || eventos[i - 1]!.momento >= e.momento);
+    const propios = eventos.filter((e) => e.equipoCodigo.startsWith('PV-MEJ-'));
+    return (
+      ordenados &&
+      propios.some((e) => e.tipo === 'cerrada') &&
+      propios.some((e) => e.tipo === 'en_revision') &&
+      eventos.every((e) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(e.momento))
+    );
+  });
+
+  // Búsqueda global
+  await paso('Búsqueda global encuentra equipos, casos, salas y técnicos', async () => {
+    const r = await buscarGlobal('mej');
+    return (
+      r.equipos.some((e) => e.codigo === 'PV-MEJ-01') &&
+      r.salas.some((s) => s.id === sala.id) &&
+      r.tecnicos.some((t) => t.nombre === 'Prueba Tecnico Mejoras A') &&
+      (await buscarGlobal(c1.numeroCaso)).incidencias[0]?.numeroCaso === c1.numeroCaso
+    );
+  });
+  await paso('Búsqueda global no interpreta comodines', async () => {
+    const r = await buscarGlobal('%%');
+    return !r.equipos.some((e) => e.codigo.startsWith('PV-MEJ-'));
+  });
+
+  // Ficha: trasladar de sala
+  const otra = (await listarSalas()).find((s) => s.nombre === 'Prueba Otra')!;
+  await paso('Trasladar equipo a otra sala conserva su historial', async () => {
+    const { sala: nombre } = await trasladarEquipo('PV-MEJ-03', otra.id);
+    const { equipo, historial } = await obtenerEquipo('PV-MEJ-03');
+    return nombre === 'Prueba Otra' && equipo.salaId === otra.id && historial.length === 3;
+  });
+  await paso('Trasladar a una sala inexistente → SALA_NO_ENCONTRADA', () =>
+    falla(() => trasladarEquipo('PV-MEJ-03', randomUUID()), 'SALA_NO_ENCONTRADA'),
+  );
+  await trasladarEquipo('PV-MEJ-03', sala.id);
 
   // Alertas: PV-MEJ-03 tiene 3 incidencias hoy.
   await paso('Alerta con conteo, último reporte y pendientes', async () => {

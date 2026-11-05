@@ -56,6 +56,13 @@ export const esquemaAsignar = z.object({ tecnicoId: z.uuid('Seleccione un técni
 
 export const esquemaCerrar = z.object({ equipoFuncional: z.boolean().optional() });
 
+export const esquemaTraslado = z.object({ salaId: z.uuid('Seleccione la sala de destino.') });
+
+// Búsqueda global (Ctrl+K): mínimo 2 caracteres para no recorrer toda la base con una letra.
+export const esquemaBusquedaGlobal = z.object({
+  q: z.string().trim().min(2, 'Escriba al menos 2 caracteres.').max(60),
+});
+
 // Identificador de una ruta dinámica (/salas/[id], /tecnicos/[id]). Sin esto, un id mal formado
 // llegaba a Postgres y respondía ERROR_INTERNO (500) en vez de un 400.
 export const esquemaId = z.uuid('Identificador no válido.');

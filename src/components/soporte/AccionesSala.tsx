@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { useRefrescar } from '@/hooks/use-refrescar';
@@ -15,6 +16,7 @@ type Props = { id: string; nombre: string; totalEquipos: number };
 // Una sala con equipos no se elimina: los equipos se conservan con su historial (RN-15).
 export function AccionesSala({ id, nombre, totalEquipos }: Props) {
   const { refrescar, refrescando } = useRefrescar();
+  const { mostrar } = useAvisos();
   const [dialogo, setDialogo] = useState<'renombrar' | 'eliminar' | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +32,7 @@ export function AccionesSala({ id, nombre, totalEquipos }: Props) {
       return;
     }
     setDialogo(null);
+    mostrar('exito', `Sala ${nombre} eliminada.`);
     refrescar();
   }
 

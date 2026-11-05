@@ -4,6 +4,7 @@ import { FormularioEquipo } from '@/components/soporte/FormularioEquipo';
 import { FormularioVariosEquipos } from '@/components/soporte/FormularioVariosEquipos';
 import { MigaDePan } from '@/components/soporte/MigaDePan';
 import { Aviso } from '@/components/ui/Aviso';
+import { EncabezadoPagina } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { listarSalas } from '@/lib/dataService';
 
@@ -20,7 +21,11 @@ export default async function PaginaNuevoEquipo({ searchParams }: Props) {
   return (
     <>
       <MigaDePan pasos={[{ texto: 'Panel', href: '/soporte' }, { texto: 'Registrar equipo' }]} />
-      <h1 className="text-2xl font-bold">Registrar equipo</h1>
+      <EncabezadoPagina
+        etiqueta="Inventario"
+        titulo="Registrar equipo"
+        descripcion="Registre un equipo con su código o el inventario completo de una sala con códigos consecutivos. Todo equipo nuevo nace funcional."
+      />
       {salas.length ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <Tarjeta className="grid content-start gap-3">

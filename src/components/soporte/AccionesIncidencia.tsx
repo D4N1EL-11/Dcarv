@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { Selector } from '@/components/ui/Selector';
@@ -33,6 +34,7 @@ export function AccionesIncidencia({
   tecnicos,
 }: Props) {
   const { refrescar, refrescando } = useRefrescar();
+  const { mostrar } = useAvisos();
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [tecnicoId, setTecnicoId] = useState('');
@@ -44,15 +46,29 @@ export function AccionesIncidencia({
   async function ejecutar(accion: 'cerrar' | 'asignar', cuerpo?: unknown) {
     setCargando(true);
     setError('');
-    const respuesta = await llamarApi(
+    const respuesta = await llamarApi<{ equipoReactivado?: boolean }>(
       `/api/soporte/incidencias/${encodeURIComponent(numeroCaso)}/${accion}`,
       'POST',
       cuerpo,
     );
     setCargando(false);
     setConfirmandoCierre(false);
-    if (respuesta.ok) refrescar();
-    else setError(respuesta.mensaje);
+    if (!respuesta.ok) {
+      setError(respuesta.mensaje);
+      return;
+    }
+    if (accion === 'asignar') {
+      const nombre = tecnicos.find((t) => t.id === tecnicoId)?.nombre ?? 'el técnico';
+      mostrar('exito', `${numeroCaso} asignada a ${nombre}.`);
+    } else {
+      mostrar(
+        'exito',
+        respuesta.datos.equipoReactivado
+          ? `${numeroCaso} cerrada. ${equipoCodigo} vuelve a estar funcional.`
+          : `${numeroCaso} cerrada.`,
+      );
+    }
+    refrescar();
   }
 
   if (estado === 'cerrada') return null;

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { HistorialIncidencias } from '@/components/soporte/HistorialIncidencias';
-import { Boton } from '@/components/ui/Boton';
+import { Boton, clasesBoton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { EncabezadoPagina } from '@/components/ui/Encabezado';
+import { Icono } from '@/components/ui/Icono';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Paginacion } from '@/components/ui/Paginacion';
 import { Selector } from '@/components/ui/Selector';
@@ -93,15 +95,23 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
     }),
   ]);
   const tecnicoFiltrado = tecnicos.find((t) => t.id === filtros.tecnicoId);
+  const consultaExportar = enlace(filtros).split('?')[1];
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold">Incidencias</h1>
-        <p className="text-sm text-texto-suave">
-          Todas las incidencias reportadas, de la más reciente a la más antigua.
-        </p>
-      </div>
+      <EncabezadoPagina
+        etiqueta="Seguimiento de fallas"
+        titulo="Incidencias"
+        descripcion="Todas las incidencias reportadas, de la más reciente a la más antigua. Los filtros se combinan y quedan en la dirección de la página."
+      >
+        <a
+          href={`/api/soporte/exportar/incidencias${consultaExportar ? `?${consultaExportar}` : ''}`}
+          className={`${clasesBoton('secundario')} gap-2`}
+          download
+        >
+          <Icono nombre="exportar" /> Exportar CSV
+        </a>
+      </EncabezadoPagina>
 
       <Pestanas filtros={filtros} conteo={conteo} />
 

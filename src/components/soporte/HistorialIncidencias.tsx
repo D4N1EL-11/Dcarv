@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { Icono, type NombreIcono } from '@/components/ui/Icono';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import type { FilaIncidencia, FilaTecnico } from '@/lib/dataService';
 import { formatearFecha, plural, textoAntiguedad } from '@/lib/formato';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
+import type { EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { diasHastaReasignacion } from '@/lib/reglas/tecnico';
 import { AccionesIncidencia } from './AccionesIncidencia';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
@@ -13,72 +15,127 @@ type Props = {
   tecnicos: FilaTecnico[];
   mostrarEquipo?: boolean;
   textoVacio: string;
+  // 'linea': línea de tiempo vertical (ficha del equipo); 'lista': listado de incidencias.
+  variante?: 'lista' | 'linea';
+};
+
+const ESTILO_ESTADO: Record<EstadoIncidencia, { punto: string; icono: NombreIcono; color: string }> = {
+  abierta: { punto: 'bg-reparacion', icono: 'incidencias', color: 'text-reparacion' },
+  en_revision: { punto: 'bg-revision', icono: 'tecnicos', color: 'text-revision' },
+  cerrada: { punto: 'bg-funcional', icono: 'check', color: 'text-funcional' },
 };
 
 // RN-10 visible: cuánto lleva el caso con su técnico y cuándo lo tomará la reasignación automática.
-function TextoRevision({ diaEstado, hoy }: { diaEstado: string; hoy: string }) {
+function textoRevision(diaEstado: string, hoy: string): string {
   const transcurridos = diasEntre(diaEstado, hoy);
   const faltan = diasHastaReasignacion(transcurridos);
+  return `Con el técnico desde ${textoAntiguedad(transcurridos)} · ${
+    faltan > 0 ? `pasa a otro en ${plural(faltan, 'día', 'días')} si no se cierra` : 'entra en la próxima reasignación'
+  }`;
+}
+
+function Detalle({ incidencia, mostrarEquipo, hoy }: { incidencia: FilaIncidencia; mostrarEquipo: boolean; hoy: string }) {
   return (
-    <p className="text-xs text-texto-suave">
-      Con este técnico desde {textoAntiguedad(transcurridos)}
-      {' · '}
-      {faltan > 0
-        ? `pasa a otro técnico en ${plural(faltan, 'día', 'días')} si no se cierra`
-        : 'entra en la próxima reasignación automática'}
-    </p>
+    <div className="grid min-w-0 flex-1 gap-1.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold tabular-nums">{incidencia.numeroCaso}</span>
+        <InsigniaEstadoIncidencia estado={incidencia.estado} />
+        {mostrarEquipo ? (
+          <Link
+            href={`/soporte/equipos/${encodeURIComponent(incidencia.equipoCodigo)}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primario underline-offset-4 hover:underline"
+          >
+            <Icono nombre="equipo" className="size-3.5" />
+            {incidencia.equipoCodigo}
+          </Link>
+        ) : null}
+      </div>
+      <p className="text-sm whitespace-pre-line break-words text-texto">{incidencia.descripcion}</p>
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-texto-suave">
+        <span className="inline-flex items-center gap-1.5">
+          <Icono nombre="calendario" className="size-3.5" />
+          {formatearFecha(incidencia.fecha)}
+          {incidencia.estado !== 'cerrada' ? ` · reportada ${textoAntiguedad(diasEntre(incidencia.fecha, hoy))}` : ''}
+        </span>
+        {incidencia.tecnico ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Icono nombre="usuario" className="size-3.5" />
+            {incidencia.tecnico}
+          </span>
+        ) : (
+          incidencia.estado === 'abierta' && <span className="italic">Sin técnico asignado</span>
+        )}
+        {incidencia.estado === 'en_revision' && incidencia.tecnico ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Icono nombre="reloj" className="size-3.5" />
+            {textoRevision(incidencia.diaEstado, hoy)}
+          </span>
+        ) : null}
+      </p>
+    </div>
   );
 }
 
-export function HistorialIncidencias({ incidencias, tecnicos, mostrarEquipo, textoVacio }: Props) {
-  if (!incidencias.length) return <EstadoVacio titulo={textoVacio} />;
+export function HistorialIncidencias({
+  incidencias,
+  tecnicos,
+  mostrarEquipo = false,
+  textoVacio,
+  variante = 'lista',
+}: Props) {
+  if (!incidencias.length) return <EstadoVacio titulo={textoVacio} icono="incidencias" />;
   const activos = tecnicos.filter((t) => t.activo).map(({ id, nombre }) => ({ id, nombre }));
   const hoy = hoyBogota();
+
+  const acciones = (incidencia: FilaIncidencia) => (
+    <div className="sm:w-52 sm:shrink-0 print:hidden">
+      <AccionesIncidencia
+        numeroCaso={incidencia.numeroCaso}
+        estado={incidencia.estado}
+        equipoCodigo={incidencia.equipoCodigo}
+        estadoEquipo={incidencia.estadoEquipo}
+        otrasPendientes={incidencia.otrasPendientes}
+        tecnicos={activos}
+      />
+    </div>
+  );
+
+  if (variante === 'linea') {
+    return (
+      <ol className="relative ml-2 grid gap-4 border-l border-borde pl-6">
+        {incidencias.map((incidencia) => (
+          // El id permite enlazar a un caso concreto (búsqueda global, movimientos recientes).
+          <li key={incidencia.numeroCaso} id={incidencia.numeroCaso} className="destacable relative">
+            <span
+              aria-hidden="true"
+              className={`absolute -left-[30.5px] top-6 size-3 rounded-full ring-4 ring-fondo ${ESTILO_ESTADO[incidencia.estado].punto}`}
+            />
+            <Tarjeta className="marco-destacable flex flex-col justify-between gap-4 transition-shadow sm:flex-row print:break-inside-avoid">
+              <Detalle incidencia={incidencia} mostrarEquipo={mostrarEquipo} hoy={hoy} />
+              {acciones(incidencia)}
+            </Tarjeta>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
   return (
-    <ul className="grid gap-3">
-      {incidencias.map((incidencia) => (
-        <li key={incidencia.numeroCaso}>
-          <Tarjeta className="flex flex-col justify-between gap-3 sm:flex-row">
-            <div className="grid gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-bold">{incidencia.numeroCaso}</span>
-                <InsigniaEstadoIncidencia estado={incidencia.estado} />
-                <span className="text-sm text-texto-suave">
-                  {formatearFecha(incidencia.fecha)}
-                  {incidencia.estado !== 'cerrada'
-                    ? ` · reportada ${textoAntiguedad(diasEntre(incidencia.fecha, hoy))}`
-                    : ''}
-                </span>
-              </div>
-              {mostrarEquipo ? (
-                <Link
-                  href={`/soporte/equipos/${encodeURIComponent(incidencia.equipoCodigo)}`}
-                  className="text-sm font-semibold text-primario underline"
-                >
-                  {incidencia.equipoCodigo}
-                </Link>
-              ) : null}
-              <p className="text-sm whitespace-pre-line break-words">{incidencia.descripcion}</p>
-              {incidencia.tecnico ? (
-                <p className="text-sm text-texto-suave">Técnico: {incidencia.tecnico}</p>
-              ) : null}
-              {incidencia.estado === 'en_revision' && incidencia.tecnico ? (
-                <TextoRevision diaEstado={incidencia.diaEstado} hoy={hoy} />
-              ) : null}
+    <ol className="divide-y divide-borde overflow-hidden rounded-xl border border-borde bg-superficie">
+      {incidencias.map((incidencia) => {
+        const estilo = ESTILO_ESTADO[incidencia.estado];
+        return (
+          <li key={incidencia.numeroCaso} id={incidencia.numeroCaso} className="destacable">
+            <div className="marco-destacable flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-superficie-alta/40 sm:flex-row sm:items-start">
+              <span className={`hidden size-9 shrink-0 place-items-center rounded-full bg-superficie-alta sm:grid ${estilo.color}`}>
+                <Icono nombre={estilo.icono} className="size-4" />
+              </span>
+              <Detalle incidencia={incidencia} mostrarEquipo={mostrarEquipo} hoy={hoy} />
+              {acciones(incidencia)}
             </div>
-            <div className="sm:w-48 sm:shrink-0">
-              <AccionesIncidencia
-                numeroCaso={incidencia.numeroCaso}
-                estado={incidencia.estado}
-                equipoCodigo={incidencia.equipoCodigo}
-                estadoEquipo={incidencia.estadoEquipo}
-                otrasPendientes={incidencia.otrasPendientes}
-                tecnicos={activos}
-              />
-            </div>
-          </Tarjeta>
-        </li>
-      ))}
-    </ul>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

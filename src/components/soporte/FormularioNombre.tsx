@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { useRefrescar } from '@/hooks/use-refrescar';
@@ -18,6 +19,7 @@ type Props = {
 // Base común de FormularioSala y FormularioTecnico: ambos solo piden un nombre.
 export function FormularioNombre({ url, etiqueta, textoBoton, maximo, validar }: Props) {
   const { refrescar, refrescando } = useRefrescar();
+  const { mostrar } = useAvisos();
   const [nombre, setNombre] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -38,6 +40,7 @@ export function FormularioNombre({ url, etiqueta, textoBoton, maximo, validar }:
     }
     setError('');
     setNombre('');
+    mostrar('exito', `${nombre.trim()} quedó registrado.`);
     refrescar();
   }
 

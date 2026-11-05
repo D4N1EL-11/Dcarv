@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Icono, type NombreIcono } from '@/components/ui/Icono';
 import type { ConteoIncidencias, FilaSala } from '@/lib/dataService';
 import { porcentaje } from '@/lib/formato';
 
@@ -9,33 +10,32 @@ function Indicador({
   valor,
   detalle,
   color,
+  icono,
   enlace,
 }: {
   titulo: string;
   valor: number;
   detalle: string;
   color: string;
-  enlace?: string | undefined;
+  icono: NombreIcono;
+  enlace: string;
 }) {
-  const contenido = (
-    <>
-      <dt className="text-[0.7rem] font-medium uppercase tracking-[0.2em] text-texto-suave">{titulo}</dt>
-      <dd className={`mt-3 font-titulo text-5xl font-medium leading-none ${color}`}>{valor}</dd>
-      <dd className="mt-2 text-xs text-texto-suave">{detalle}</dd>
-    </>
-  );
-  const clases = 'grid h-full content-start rounded-xl border border-borde bg-superficie p-5';
-  return enlace ? (
-    <div>
-      <Link
-        href={enlace}
-        className={`${clases} transition hover:-translate-y-0.5 hover:border-primario/50 focus-visible:outline-2 focus-visible:outline-primario`}
-      >
-        <dl className="contents">{contenido}</dl>
-      </Link>
-    </div>
-  ) : (
-    <dl className={clases}>{contenido}</dl>
+  // Cifra grande en la sans del texto (no en la serif de los títulos) y en tinta de texto:
+  // el color de estado va en el ícono, que acompaña a la etiqueta.
+  return (
+    <Link
+      href={enlace}
+      className="group grid h-full content-start gap-3 rounded-xl border border-borde bg-superficie p-5 transition hover:-translate-y-0.5 hover:border-primario/50 focus-visible:outline-2 focus-visible:outline-primario"
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-[0.7rem] font-medium uppercase tracking-[0.2em] text-texto-suave">{titulo}</span>
+        <span className={`grid size-8 place-items-center rounded-full bg-superficie-alta ${color}`}>
+          <Icono nombre={icono} />
+        </span>
+      </span>
+      <span className="text-4xl font-semibold leading-none text-texto">{valor}</span>
+      <span className="text-xs text-texto-suave">{detalle}</span>
+    </Link>
   );
 }
 
@@ -54,6 +54,7 @@ export function IndicadoresPanel({ salas, incidencias }: Props) {
         valor={funcionales}
         detalle={`de ${total} equipos · ${porcentaje(funcionales, total)} %`}
         color="text-funcional"
+        icono="check"
         enlace="/soporte?estado=funcional"
       />
       <Indicador
@@ -61,6 +62,7 @@ export function IndicadoresPanel({ salas, incidencias }: Props) {
         valor={enReparacion}
         detalle="con una falla en atención"
         color="text-reparacion"
+        icono="tecnicos"
         enlace="/soporte?estado=en_reparacion"
       />
       <Indicador
@@ -68,14 +70,16 @@ export function IndicadoresPanel({ salas, incidencias }: Props) {
         valor={dadosDeBaja}
         detalle="retirados de servicio"
         color="text-baja"
+        icono="cerrar"
         enlace="/soporte?estado=dado_de_baja"
       />
       <Indicador
-        titulo="Incidencias pendientes"
+        titulo="Pendientes"
         valor={pendientes}
         detalle={`${incidencias.abierta} abiertas · ${incidencias.en_revision} en revisión`}
         color="text-primario"
-        enlace="/soporte/incidencias?estado=abierta"
+        icono="incidencias"
+        enlace={incidencias.abierta ? '/soporte/incidencias?estado=abierta' : '/soporte/incidencias?estado=en_revision'}
       />
     </section>
   );

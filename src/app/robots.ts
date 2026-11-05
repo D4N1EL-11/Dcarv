@@ -1,2 +1,11 @@
 import type { MetadataRoute } from 'next';
-export default function robots(): MetadataRoute.Robots { return { rules: { userAgent: '*', allow: '/', disallow: ['/api/', '/dashboard/'] }, sitemap: 'https://example.com/sitemap.xml' }; }
+import { obtenerUrlBase } from '@/lib/urlBase';
+
+// Solo las páginas públicas (acceso y registro) son indexables; el módulo y la API, no.
+export default function robots(): MetadataRoute.Robots {
+  const base = obtenerUrlBase();
+  return {
+    rules: { userAgent: '*', allow: ['/login', '/register'], disallow: ['/soporte', '/api/', '/dashboard/'] },
+    sitemap: `${base}/sitemap.xml`,
+  };
+}

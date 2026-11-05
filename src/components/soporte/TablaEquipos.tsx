@@ -61,7 +61,7 @@ export function TablaEquipos({ equipos }: { equipos: FilaEquipo[] }) {
               </td>
               <td className={CELDA}>
                 <Dato titulo="Cambiar estado" />
-                <SelectorEstadoEquipo codigo={equipo.codigo} estado={equipo.estado} />
+                <SelectorEstadoEquipo codigo={equipo.codigo} estado={equipo.estado} compacto />
               </td>
             </tr>
           );

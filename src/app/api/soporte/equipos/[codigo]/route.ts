@@ -1,6 +1,7 @@
 import { exigirSesion } from '@/lib/auth/sesion';
-import { obtenerEquipo } from '@/lib/dataService';
-import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
+import { obtenerEquipo, trasladarEquipo } from '@/lib/dataService';
+import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
+import { esquemaTraslado } from '@/lib/validacion/esquemas';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,4 +11,12 @@ export const GET = conManejoDeErrores(async (_request, { params }: Contexto) => 
   await exigirSesion();
   const { codigo } = await params;
   return responderOk(await obtenerEquipo(codigo));
+});
+
+// Trasladar a otra sala: { salaId }. EQUIPO_NO_ENCONTRADO o SALA_NO_ENCONTRADA.
+export const PATCH = conManejoDeErrores(async (request, { params }: Contexto) => {
+  await exigirSesion();
+  const { codigo } = await params;
+  const { salaId } = esquemaTraslado.parse(await leerCuerpo(request));
+  return responderOk(await trasladarEquipo(codigo, salaId));
 });

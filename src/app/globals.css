@@ -20,6 +20,12 @@
   --color-texto-suave: #9c998f;
   --color-borde: #2a2b30;
 
+  /* Series de gráficos (validadas con el validador de dataviz sobre la superficie oscura:
+     banda de luminosidad, croma, separación para daltonismo ΔE 29 y contraste ≥ 3:1).
+     No reutilizan los colores de estado, que significan otra cosa. */
+  --color-serie-1: #bd8a1e;
+  --color-serie-2: #8a78ee;
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
   --font-titulo: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
 }
@@ -53,12 +59,15 @@
   button, input, textarea, select { font: inherit; }
 
   /* Títulos dorados en serif; cada página puede ajustar tamaño y peso con utilidades. */
+  /* Cifras alineadas (lnum): Cormorant usa cifras antiguas por defecto y "PC-01" se leía "PC-oı". */
   h1, h2 {
     font-family: var(--font-titulo);
     color: var(--color-primario);
     letter-spacing: 0.005em;
+    font-variant-numeric: lining-nums;
   }
-  h3 { font-family: var(--font-titulo); }
+  h3 { font-family: var(--font-titulo); font-variant-numeric: lining-nums; }
+  .font-titulo { font-variant-numeric: lining-nums; }
 
   ::selection { background: rgb(212 178 106 / 0.3); color: var(--color-texto); }
   input::placeholder, textarea::placeholder { color: rgb(156 153 143 / 0.6); }
@@ -73,6 +82,43 @@
 @keyframes float-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .animate-float-in { animation: float-in 500ms ease-out both; }
 
+/* Entrada de cada página y de los diálogos: breve, para que el cambio se note sin distraer.
+   "backwards" y no "both": un transform que queda aplicado al terminar convierte al contenedor en
+   referencia de los elementos fixed, y el fondo de los diálogos dejaba sin cubrir la barra superior. */
+@keyframes entrada { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animate-entrada { animation: entrada 280ms ease-out backwards; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+.animate-aparecer { animation: aparecer 180ms ease-out backwards; }
+@keyframes desvanecer { from { opacity: 0; } to { opacity: 1; } }
+.animate-desvanecer { animation: desvanecer 160ms ease-out backwards; }
+
+@keyframes progreso { from { width: 0; } to { width: 85%; } }
+.animate-progreso { animation: progreso 8s cubic-bezier(0.1, 0.7, 0.2, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-float-in { animation: none; }
+  .animate-float-in, .animate-entrada, .animate-aparecer, .animate-desvanecer { animation: none; }
+}
+
+/* Incidencia enlazada desde la búsqueda (/soporte/equipos/X#INC-0001): se resalta al llegar. */
+.destacable { scroll-margin-top: 6rem; }
+.destacable:target .marco-destacable { box-shadow: inset 0 0 0 2px var(--color-primario); }
+
+/* Impresión (ficha del equipo como hoja de vida): fondo blanco, tinta negra, sin navegación. */
+@media print {
+  :root {
+    --color-fondo: #ffffff;
+    --color-superficie: #ffffff;
+    --color-superficie-alta: #f4f4f4;
+    --color-texto: #111111;
+    --color-texto-suave: #444444;
+    --color-borde: #cccccc;
+    --color-primario: #6b4e12;
+    --color-funcional: #1f6b40;
+    --color-reparacion: #8a4b12;
+    --color-baja: #9b2121;
+    --color-revision: #1f4f8a;
+  }
+  body { background: #ffffff; }
+  .linea-dorada { display: none; }
+  a { text-decoration: none; }
 }

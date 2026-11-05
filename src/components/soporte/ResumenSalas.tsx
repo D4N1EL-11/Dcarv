@@ -41,7 +41,7 @@ export function ResumenSalas({ salas, seleccionada, conRegistro = false }: Props
             </div>
 
             <p className="text-sm text-texto-suave">
-              <span className="font-titulo text-3xl font-medium text-funcional">{sala.funcionales}</span>{' '}
+              <span className="text-2xl font-semibold text-texto">{sala.funcionales}</span>{' '}
               {sala.funcionales === 1 ? 'disponible' : 'disponibles'}
               {sala.totalEquipos ? ` · ${porcentaje(sala.funcionales, sala.totalEquipos)} %` : ''}
             </p>

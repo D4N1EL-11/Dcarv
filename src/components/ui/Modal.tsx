@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
-import { Boton } from './Boton';
+import { Icono } from './Icono';
 
 type Props = { titulo: string; alCerrar: () => void; children: React.ReactNode };
 
@@ -33,7 +33,7 @@ export function Modal({ titulo, alCerrar, children }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid animate-desvanecer place-items-center bg-black/70 p-4 backdrop-blur-sm"
       onMouseDown={(evento) => {
         if (evento.target === evento.currentTarget) cerrar.current();
       }}
@@ -44,15 +44,20 @@ export function Modal({ titulo, alCerrar, children }: Props) {
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="w-full max-w-md rounded-xl border border-borde bg-superficie p-6 text-left text-texto shadow-2xl shadow-black/50 focus:outline-none"
+        className="w-full max-w-md animate-aparecer rounded-2xl border border-borde bg-superficie p-6 text-left text-texto shadow-2xl shadow-black/60 focus:outline-none"
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 id={idTitulo} className="text-2xl font-semibold">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h2 id={idTitulo} className="text-2xl font-semibold leading-tight">
             {titulo}
           </h2>
-          <Boton variante="fantasma" onClick={() => cerrar.current()}>
-            Cerrar
-          </Boton>
+          <button
+            type="button"
+            onClick={() => cerrar.current()}
+            aria-label="Cerrar"
+            className="-mr-1 rounded-lg p-1.5 text-texto-suave transition hover:bg-superficie-alta hover:text-texto"
+          >
+            <Icono nombre="cerrar" className="size-5" />
+          </button>
         </div>
         {children}
       </div>

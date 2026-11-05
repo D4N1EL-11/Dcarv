@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
+import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Modal } from '@/components/ui/Modal';
@@ -22,6 +23,7 @@ type Props = {
 // los duplicados (sin distinguir mayúsculas) los rechaza la base con un índice único.
 export function DialogoRenombrar({ titulo, etiqueta, nombreActual, url, maximo, validar, alCerrar }: Props) {
   const { refrescar, refrescando } = useRefrescar();
+  const { mostrar } = useAvisos();
   const [nombre, setNombre] = useState(nombreActual);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -45,6 +47,7 @@ export function DialogoRenombrar({ titulo, etiqueta, nombreActual, url, maximo, 
       return;
     }
     alCerrar();
+    mostrar('exito', `Nombre actualizado: ${nombre.trim()}.`);
     refrescar();
   }
 

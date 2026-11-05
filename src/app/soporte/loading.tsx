@@ -1,21 +1,19 @@
-// Esqueleto mientras el servidor consulta la base: evita una pantalla en blanco.
-export default function CargandoSoporte() {
-  const bloque = 'animate-pulse rounded-lg bg-borde/60';
+import { Bloque, EsqueletoPagina, EsqueletoTarjetas } from '@/components/ui/Esqueleto';
+
+// Panel: indicadores, gráfico con columna lateral, salas y tabla.
+export default function CargandoPanel() {
   return (
-    <div role="status" aria-live="polite" className="grid gap-6">
-      <span className="sr-only">Cargando información...</span>
-      <div className={`${bloque} h-8 w-64`} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((n) => (
-          <div key={n} className={`${bloque} h-24`} />
-        ))}
+    <EsqueletoPagina>
+      <EsqueletoTarjetas cantidad={4} alto="h-32" columnas="grid-cols-2 lg:grid-cols-4" />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Bloque className="h-80 lg:col-span-2" />
+        <div className="grid gap-4">
+          <Bloque className="h-32" />
+          <Bloque className="h-44" />
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map((n) => (
-          <div key={n} className={`${bloque} h-32`} />
-        ))}
-      </div>
-      <div className={`${bloque} h-48`} />
-    </div>
+      <EsqueletoTarjetas cantidad={3} alto="h-40" columnas="sm:grid-cols-2 lg:grid-cols-3" />
+      <Bloque className="h-64" />
+    </EsqueletoPagina>
   );
 }

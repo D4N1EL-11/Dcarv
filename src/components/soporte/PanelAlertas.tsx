@@ -55,7 +55,7 @@ export function PanelAlertas({ candidatos }: { candidatos: FilaCandidato[] }) {
             </div>
             <div className="grid gap-1">
               <span className="text-xs font-semibold text-texto-suave">Cambiar estado</span>
-              <SelectorEstadoEquipo codigo={candidato.codigo} estado={candidato.estado} />
+              <SelectorEstadoEquipo codigo={candidato.codigo} estado={candidato.estado} compacto />
             </div>
           </Tarjeta>
         </li>

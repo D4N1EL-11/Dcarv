@@ -1,56 +1,48 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { ActividadReciente } from '@/components/soporte/ActividadReciente';
+import { BarraEstados } from '@/components/soporte/BarraEstados';
 import { FiltrosEquipos } from '@/components/soporte/FiltrosEquipos';
+import { GraficoActividad } from '@/components/soporte/GraficoActividad';
 import { IndicadoresPanel } from '@/components/soporte/IndicadoresPanel';
 import { ResumenSalas } from '@/components/soporte/ResumenSalas';
 import { TablaEquipos } from '@/components/soporte/TablaEquipos';
 import { Aviso } from '@/components/ui/Aviso';
 import { clasesBoton } from '@/components/ui/Boton';
+import { BloquePanel, EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { Icono } from '@/components/ui/Icono';
 import { Paginacion } from '@/components/ui/Paginacion';
+import { COOKIE_ALERTAS_VISTAS, contarSinVer, leerVistos } from '@/lib/alertasVistas';
 import { TAMANO_PAGINA_EQUIPOS } from '@/lib/config/soporte';
 import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
-import { contarIncidenciasPorEstado, listarSalas, paginarEquipos } from '@/lib/dataService';
-import { formatearFecha, plural } from '@/lib/formato';
+import {
+  actividadReciente,
+  contarIncidenciasPorEstado,
+  listarSalas,
+  paginarEquipos,
+  serieActividad,
+} from '@/lib/dataService';
+import { formatearFechaLarga, plural } from '@/lib/formato';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { normalizarPagina } from '@/lib/reglas/paginacion';
 import { esquemaFiltrosEquipos, type FiltrosEquipos as Filtros } from '@/lib/validacion/esquemas';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-function enlacePagina(filtros: Filtros, pagina: number): string {
+function consultaFiltros(filtros: Filtros): URLSearchParams {
   const consulta = new URLSearchParams();
   if (filtros.salaId) consulta.set('salaId', filtros.salaId);
   if (filtros.estado) consulta.set('estado', filtros.estado);
   if (filtros.busqueda) consulta.set('busqueda', filtros.busqueda);
+  return consulta;
+}
+
+function enlacePagina(filtros: Filtros, pagina: number): string {
+  const consulta = consultaFiltros(filtros);
   if (pagina > 1) consulta.set('pagina', String(pagina));
   const texto = consulta.toString();
   return texto ? `/soporte?${texto}` : '/soporte';
-}
-
-function Encabezado({ etiqueta, titulo, children }: { etiqueta: string; titulo: string; children?: React.ReactNode }) {
-  return (
-    <header className="grid gap-5">
-      <div className="flex items-center gap-4">
-        <span aria-hidden="true" className="h-px w-10 bg-primario/70" />
-        <p className="text-[0.7rem] font-medium uppercase tracking-[0.3em] text-texto-suave">{etiqueta}</p>
-      </div>
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <h1 className="text-4xl font-medium leading-none sm:text-5xl">{titulo}</h1>
-        {children}
-      </div>
-    </header>
-  );
-}
-
-function TituloSeccion({ id, titulo, children }: { id: string; titulo: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-borde pb-3">
-      <h2 id={id} className="text-2xl font-medium">
-        {titulo}
-      </h2>
-      {children}
-    </div>
-  );
 }
 
 export default async function PanelSoporte({ searchParams }: Props) {
@@ -58,18 +50,26 @@ export default async function PanelSoporte({ searchParams }: Props) {
   const filtrado = esquemaFiltrosEquipos.safeParse(parametros);
   const filtros = filtrado.success ? filtrado.data : {};
   const pagina = normalizarPagina(parametros.pagina);
-  const [salas, resultado, candidatos, incidencias] = await Promise.all([
+  // Todas las consultas en paralelo; la de alertas se comparte con el menú (React cache).
+  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen] = await Promise.all([
     listarSalas(),
     paginarEquipos(filtros, pagina, TAMANO_PAGINA_EQUIPOS),
     candidatosDeLaPeticion(),
     contarIncidenciasPorEstado(),
+    serieActividad(),
+    actividadReciente(4),
+    cookies(),
   ]);
   const equipos = resultado.filas;
+  const candidatosSinVer = contarSinVer(
+    candidatos.map((c) => c.codigo),
+    leerVistos(almacen.get(COOKIE_ALERTAS_VISTAS)?.value),
+  );
 
   if (!salas.length) {
     return (
       <>
-        <Encabezado etiqueta="Primeros pasos" titulo="Bienvenido a Soporte de Salas" />
+        <EncabezadoPagina etiqueta="Primeros pasos" titulo="Bienvenido a Soporte de Salas" />
         <EstadoVacio titulo="Todavía no hay salas registradas">
           <p>Empiece registrando una sala; luego podrá agregar sus equipos.</p>
           <Link href="/soporte/salas" className={`${clasesBoton()} mt-5`}>
@@ -80,26 +80,35 @@ export default async function PanelSoporte({ searchParams }: Props) {
     );
   }
 
+  const totales = salas.reduce(
+    (suma, s) => ({
+      funcionales: suma.funcionales + s.funcionales,
+      enReparacion: suma.enReparacion + s.enReparacion,
+      dadosDeBaja: suma.dadosDeBaja + s.dadosDeBaja,
+    }),
+    { funcionales: 0, enReparacion: 0, dadosDeBaja: 0 },
+  );
+  const textoExportar = consultaFiltros(filtros).toString();
+
   return (
     <>
-      <Encabezado etiqueta={`Estado al ${formatearFecha(hoyBogota())}`} titulo="Panel de salas y equipos">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={filtros.salaId ? `/soporte/equipos/nuevo?salaId=${filtros.salaId}` : '/soporte/equipos/nuevo'}
-            className={clasesBoton()}
-          >
-            Registrar equipo
-          </Link>
-          <Link href="/soporte/salas" className={clasesBoton('secundario')}>
-            Registrar sala
-          </Link>
-        </div>
-      </Encabezado>
+      <EncabezadoPagina etiqueta={formatearFechaLarga(hoyBogota())} titulo="Panel de salas y equipos">
+        <Link
+          href={filtros.salaId ? `/soporte/equipos/nuevo?salaId=${filtros.salaId}` : '/soporte/equipos/nuevo'}
+          className={clasesBoton()}
+        >
+          Registrar equipo
+        </Link>
+        <Link href="/soporte/salas" className={clasesBoton('secundario')}>
+          Registrar sala
+        </Link>
+      </EncabezadoPagina>
 
-      {candidatos.length ? (
+      {/* Solo los candidatos nuevos: los ya revisados en /soporte/alertas no vuelven a avisar. */}
+      {candidatosSinVer ? (
         <Aviso tipo="advertencia">
-          {plural(candidatos.length, 'equipo es candidato', 'equipos son candidatos')} a baja por
-          fallas repetidas.{' '}
+          {plural(candidatosSinVer, 'equipo nuevo es candidato', 'equipos nuevos son candidatos')} a
+          baja por fallas repetidas.{' '}
           <Link href="/soporte/alertas" className="font-semibold underline underline-offset-4">
             Revisar alertas
           </Link>
@@ -107,6 +116,20 @@ export default async function PanelSoporte({ searchParams }: Props) {
       ) : null}
 
       <IndicadoresPanel salas={salas} incidencias={incidencias} />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BloquePanel titulo="Actividad de los últimos 30 días" className="lg:col-span-2">
+          <GraficoActividad serie={serie} />
+        </BloquePanel>
+        <div className="grid content-start gap-4">
+          <BloquePanel titulo="Estado del inventario">
+            <BarraEstados {...totales} />
+          </BloquePanel>
+          <BloquePanel titulo="Movimientos recientes">
+            <ActividadReciente eventos={eventos} />
+          </BloquePanel>
+        </div>
+      </div>
 
       <section aria-labelledby="titulo-salas" className="grid gap-5">
         <TituloSeccion id="titulo-salas" titulo="Salas">
@@ -116,7 +139,15 @@ export default async function PanelSoporte({ searchParams }: Props) {
       </section>
 
       <section aria-labelledby="titulo-equipos" className="grid gap-5">
-        <TituloSeccion id="titulo-equipos" titulo="Equipos" />
+        <TituloSeccion id="titulo-equipos" titulo="Equipos">
+          <a
+            href={`/api/soporte/exportar/equipos${textoExportar ? `?${textoExportar}` : ''}`}
+            className="flex items-center gap-2 text-sm font-medium text-primario underline-offset-4 hover:underline"
+            download
+          >
+            <Icono nombre="exportar" /> Exportar CSV
+          </a>
+        </TituloSeccion>
         {/* La clave reinicia los filtros cuando la URL cambia desde fuera (p. ej. al pulsar una sala). */}
         <FiltrosEquipos
           key={`${filtros.salaId ?? ''}|${filtros.estado ?? ''}|${filtros.busqueda ?? ''}`}

@@ -27,3 +27,7 @@ Todas exigen sesión (401 `NO_AUTORIZADO` sin ella) y responden `{ ok: true, dat
 | `DELETE /api/soporte/salas/[id]` | — | `TIENE_DEPENDENCIAS` si tiene equipos, `SALA_NO_ENCONTRADA` |
 | `PATCH /api/soporte/tecnicos/[id]` | `{ nombre }` y/o `{ activo }` | `{ actualizado, actividad: { activo, reasignadas, sinReasignar } \| null }`; `TECNICO_DUPLICADO`, `TECNICO_NO_ENCONTRADO` |
 | `GET /api/soporte/alertas` | — | Cada candidato trae además `ultimaFecha` y `pendientes` |
+| `GET /api/soporte/buscar?q=` | `q` de 2 a 60 caracteres | `{ equipos, incidencias, salas, tecnicos }`, 5 de cada uno; 400 si `q` es muy corto |
+| `PATCH /api/soporte/equipos/[codigo]` | `{ salaId }` | Traslada el equipo: `{ sala }`; `EQUIPO_NO_ENCONTRADO`, `SALA_NO_ENCONTRADA` |
+| `GET /api/soporte/exportar/equipos` | Mismos filtros que el panel | CSV (`;`, BOM UTF-8, CRLF), `equipos-AAAA-MM-DD.csv`, hasta 5000 filas |
+| `GET /api/soporte/exportar/incidencias` | Mismos filtros que el listado | CSV, `incidencias-AAAA-MM-DD.csv`, hasta 5000 filas |

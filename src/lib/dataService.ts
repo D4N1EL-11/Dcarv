@@ -8,7 +8,12 @@ export {
 	listarEquipos,
 	obtenerEquipo,
 	paginarEquipos,
+	trasladarEquipo,
 } from '@/lib/datos/equipos';
+export { actividadReciente, serieActividad } from '@/lib/datos/panel';
+export type { EventoActividad } from '@/lib/datos/panel';
+export { buscarGlobal } from '@/lib/datos/busqueda';
+export type { ResultadosBusqueda } from '@/lib/datos/busqueda';
 export {
 	cerrarIncidencia,
 	contarIncidenciasPorEstado,

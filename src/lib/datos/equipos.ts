@@ -95,6 +95,17 @@ export async function cambiarEstadoEquipo(codigo: string, estado: string): Promi
   if (!filas.length) throw new ErrorDeNegocio('EQUIPO_NO_ENCONTRADO');
 }
 
+// Trasladar un equipo a otra sala (inventario que cambia de lugar). El código, el estado y el
+// historial no cambian; solo la sala. La sala destino debe existir.
+export async function trasladarEquipo(codigo: string, salaId: string): Promise<{ sala: string }> {
+  return conTransaccion(async (tx) => {
+    const equipo = await obtenerEquipoPorCodigo(tx, codigo);
+    const sala = await obtenerSalaActiva(tx, salaId);
+    await tx.query('UPDATE equipos SET sala_id = $1 WHERE id = $2', [sala.id, equipo.id]);
+    return { sala: sala.nombre };
+  });
+}
+
 // FOR UPDATE: un cambio de estado simultáneo espera a que termine el reporte.
 export async function obtenerEquipoPorCodigo(
   tx: PoolClient,
