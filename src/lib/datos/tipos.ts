@@ -33,6 +33,9 @@ export type FilaIncidencia = {
   estadoEquipo: EstadoEquipo;
   // Incidencias no cerradas del mismo equipo, sin contar esta.
   otrasPendientes: number;
+  // Correo de quien la reportó (null en las anteriores a las cuentas de reporte).
+  reportadoPor: string | null;
+  tieneFoto: boolean;
 };
 
 export type DetalleEquipo = { equipo: FilaEquipo; historial: FilaIncidencia[] };

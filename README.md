@@ -36,6 +36,15 @@ Herramientas de trabajo:
 - **Sesión vencida:** se vuelve al login y, al entrar, a la misma página.
 - **Tema oscuro con acentos dorados**, adaptado a celular.
 
+Cuentas y seguridad:
+
+- **Dos tipos de cuenta.** Los correos @usa.edu.co nacen como **soporte** (todo el módulo); cualquier otro, como **cuenta de reporte**: solo reporta fallas (con foto opcional) y sigue sus casos en "Mis reportes". No cambia estados, no da de baja ni registra salas, equipos o técnicos. Un administrador cambia roles en "Cuentas y roles" y el cambio quita permisos de inmediato.
+- **Etiquetas QR por equipo**, para imprimir y pegar: al escanearlas se abre el reporte con ese equipo ya elegido.
+- **Fotos de la falla** en un bucket privado de Supabase Storage; se ven con URLs firmadas de pocos minutos.
+- **Registro de cambios:** quién hizo qué y cuándo (reportes, estados, asignaciones, cierres, traslados, salas, técnicos y roles).
+- **Freno a la fuerza bruta:** tras 5 contraseñas incorrectas seguidas con el mismo correo, el login espera 15 minutos.
+- **Contraseñas:** mostrar u ocultar, aviso de Bloq Mayús y medidor de seguridad.
+
 Opcionales:
 
 - **F5 · Técnicos.** Registrar técnicos y asignarlos a incidencias abiertas (pasan a "En revisión"). Las incidencias con más de 5 días sin cambio de estado se reasignan solas a otro técnico (Vercel Cron diario).
@@ -84,7 +93,8 @@ npm run dev           # http://localhost:3000 → /soporte
 | `db:demo` | Carga datos de demostración, incluido un equipo candidato a baja |
 | `probar:flujo` | Recorre los 14 pasos del flujo completo contra la base y limpia al final |
 | `probar:opcionales` | Prueba técnicos, asignación, reasignación y alertas contra la base |
-| `probar:mejoras` | Prueba contra la base paginación, búsquedas, cierre con reactivación, gestión de salas y técnicos, traslado, gráfico y alertas (30 comprobaciones) |
+| `probar:mejoras` | Prueba contra la base paginación, búsquedas, cierre con reactivación, gestión de salas y técnicos, traslado, gráfico, alertas, quién reportó, registro de cambios, fotos, intentos de acceso y roles (43 comprobaciones) |
+| `e2e` | Pruebas de extremo a extremo con Playwright (acceso y barrera de permisos, sin base de datos) |
 | `lint` / `type-check` | ESLint y verificación de tipos |
 
 ## Estructura
@@ -92,7 +102,7 @@ npm run dev           # http://localhost:3000 → /soporte
 ```text
 src/
 ├── app/
-│   ├── soporte/              # pantallas: panel, salas, equipos, incidencias, técnicos, alertas
+│   ├── soporte/              # pantallas: panel, salas, equipos, incidencias, técnicos, alertas, reportar, mis reportes, etiquetas, registro, cuentas
 │   ├── api/soporte/          # API protegida con sesión
 │   └── api/cron/reasignar/   # reasignación automática (Vercel Cron)
 ├── components/
@@ -105,10 +115,11 @@ src/
     ├── db/conexion.ts        # pool de Postgres (solo lo usa lib/datos)
     ├── validacion/           # esquemas Zod
     ├── http/                 # formato de respuestas y errores de la API
-    └── auth/sesion.ts        # adaptador sobre el login existente
+    └── auth/                 # sesión, permisos por rol (permisos.ts) y contexto de la petición
 supabase/migrations/          # SQL de las tablas, la vista y la seguridad
 scripts/                      # migrar, verificar, limpiar, demo y pruebas de flujo
-tests/reglas/                 # pruebas T-01 a T-21 y de las mejoras (npm test: 84 en total)
+tests/reglas/                 # pruebas T-01 a T-21 y de las mejoras (npm test: 129 en total)
+e2e/                          # pruebas de extremo a extremo (Playwright)
 doc/                          # plan, prompts, estado, aceptación y checkpoints
 ```
 
@@ -120,7 +131,8 @@ El plan funcional original guardaba todo en `datos.json` con Flask. Vercel tiene
 
 - Nunca escriba credenciales ni valores de variables en archivos del repositorio. `.env.local` está en `.gitignore`.
 - Las tablas tienen RLS activo sin políticas y permisos revocados para `anon` y `authenticated`: la clave pública de Supabase no puede leerlas. Todo el acceso pasa por el servidor.
-- Toda ruta `/api/soporte/*` exige sesión; sin ella responde 401.
+- Toda ruta `/api/soporte/*` exige sesión; sin ella responde 401. Los permisos por rol se comprueban en el middleware y otra vez en cada ruta (`exigirSoporte`, que lee el rol vigente de la base); una cuenta de reporte recibe 403.
+- Sin correo verificado, cualquiera puede registrarse con una dirección @usa.edu.co inventada: revise "Cuentas y roles" y el registro de cambios.
 - El SQL siempre va parametrizado y los errores internos no se muestran al usuario.
 - Encabezados HTTP de seguridad en todas las respuestas: `X-Frame-Options: DENY` y `frame-ancestors 'none'` (sin iframes ajenos), `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS; sin `X-Powered-By`.
 - El regreso tras iniciar sesión solo acepta rutas internas de `/soporte` (sin redirecciones abiertas).

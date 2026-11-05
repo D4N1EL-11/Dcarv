@@ -25,3 +25,22 @@ describe('formato para la interfaz', () => {
     expect(formatearFecha('2026-06-01')).toMatch(/^0?1\D/);
   });
 });
+
+describe('texto del registro de cambios', () => {
+  it('describe cada acción en una frase', async () => {
+    const { textoEvento } = await import('@/lib/formato');
+    const base = { equipoCodigo: null, numeroCaso: null, detalle: '' };
+    expect(textoEvento({ ...base, accion: 'incidencia_reportada', numeroCaso: 'INC-0080', equipoCodigo: 'PC-01', detalle: 'No enciende' })).toBe(
+      'reportó INC-0080 en PC-01: “No enciende”',
+    );
+    expect(textoEvento({ ...base, accion: 'estado_equipo', equipoCodigo: 'PC-01', detalle: 'Funcional → Dado de baja' })).toBe(
+      'cambió el estado de PC-01: Funcional → Dado de baja',
+    );
+    expect(textoEvento({ ...base, accion: 'incidencia_asignada', numeroCaso: 'INC-0080', detalle: 'a Ana' })).toBe('asignó INC-0080 a Ana');
+    expect(textoEvento({ ...base, accion: 'equipo_registrado', equipoCodigo: 'PC-02', detalle: 'en Sala 1' })).toBe('registró el equipo PC-02 en Sala 1');
+    expect(textoEvento({ ...base, accion: 'sala_eliminada', detalle: 'Sala 9' })).toBe('eliminó la sala Sala 9');
+    expect(textoEvento({ ...base, accion: 'rol_cambiado', detalle: 'ana@gmail.com: Cuenta de reporte → Soporte técnico' })).toBe(
+      'cambió el rol de ana@gmail.com: Cuenta de reporte → Soporte técnico',
+    );
+  });
+});

@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { CampoContrasena } from '@/components/auth/CampoContrasena';
+import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
 
 export function FormularioRestablecimiento({ token }: { token: string }) {
 	const router = useRouter();
@@ -15,8 +17,8 @@ export function FormularioRestablecimiento({ token }: { token: string }) {
 	async function guardarContrasena(evento: FormEvent<HTMLFormElement>) {
 		evento.preventDefault();
 		setError('');
-		if (contrasena.length < 8) {
-			setError('La contraseña debe tener al menos 8 caracteres.');
+		if ([...contrasena].length < LONGITUD_MINIMA_CONTRASENA) {
+			setError(`La contraseña debe tener al menos ${LONGITUD_MINIMA_CONTRASENA} caracteres.`);
 			return;
 		}
 		if (contrasena !== confirmacion) {
@@ -31,7 +33,7 @@ export function FormularioRestablecimiento({ token }: { token: string }) {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ token, contrasena, confirmacion }),
 			});
-			const resultado = await respuesta.json() as { error?: string };
+			const resultado = (await respuesta.json().catch(() => ({}))) as { error?: string };
 			if (!respuesta.ok) throw new Error(resultado.error || 'No se pudo actualizar la contraseña.');
 			router.replace('/login?restablecida=1');
 		} catch (errorCapturado) {
@@ -42,11 +44,32 @@ export function FormularioRestablecimiento({ token }: { token: string }) {
 	}
 
 	return (
-		<form className="mt-8 grid gap-5" onSubmit={guardarContrasena}>
-			<Input id="contrasena-nueva" label="Nueva contraseña" type="password" autoComplete="new-password" minLength={8} helperText="Mínimo 8 caracteres." required value={contrasena} onChange={(evento) => setContrasena(evento.target.value)} />
-			<Input id="confirmacion-contrasena" label="Confirmar nueva contraseña" type="password" autoComplete="new-password" required value={confirmacion} onChange={(evento) => setConfirmacion(evento.target.value)} />
-			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
-			<Button type="submit" size="lg" className="w-full" loading={procesando}>Guardar contraseña</Button>
+		<form className="mt-8 grid gap-5" onSubmit={guardarContrasena} noValidate>
+			<CampoContrasena
+				id="contrasena-nueva"
+				label="Nueva contraseña"
+				autoComplete="new-password"
+				placeholder={`Mínimo ${LONGITUD_MINIMA_CONTRASENA} caracteres`}
+				autoFocus
+				value={contrasena}
+				onChange={(evento) => setContrasena(evento.target.value)}
+			>
+				<MedidorContrasena clave={contrasena} />
+			</CampoContrasena>
+			<CampoContrasena
+				id="confirmacion-contrasena"
+				label="Confirmar nueva contraseña"
+				autoComplete="new-password"
+				placeholder="Repite la contraseña"
+				value={confirmacion}
+				onChange={(evento) => setConfirmacion(evento.target.value)}
+			/>
+			{error ? (
+				<p role="alert" className="rounded-lg border border-baja/30 bg-baja/10 px-3.5 py-2.5 text-sm text-baja">{error}</p>
+			) : null}
+			<Button type="submit" size="lg" className="w-full" loading={procesando}>
+				{procesando ? 'Guardando…' : 'Guardar contraseña'}
+			</Button>
 		</form>
 	);
 }

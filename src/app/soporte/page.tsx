@@ -5,6 +5,7 @@ import { BarraEstados } from '@/components/soporte/BarraEstados';
 import { FiltrosEquipos } from '@/components/soporte/FiltrosEquipos';
 import { GraficoActividad } from '@/components/soporte/GraficoActividad';
 import { IndicadoresPanel } from '@/components/soporte/IndicadoresPanel';
+import { PendientesAtencion } from '@/components/soporte/PendientesAtencion';
 import { ResumenSalas } from '@/components/soporte/ResumenSalas';
 import { TablaEquipos } from '@/components/soporte/TablaEquipos';
 import { Aviso } from '@/components/ui/Aviso';
@@ -19,6 +20,7 @@ import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 import {
   actividadReciente,
   contarIncidenciasPorEstado,
+  incidenciasPendientes,
   listarSalas,
   paginarEquipos,
   serieActividad,
@@ -27,6 +29,7 @@ import { formatearFechaLarga, plural } from '@/lib/formato';
 import { hoyBogota } from '@/lib/reglas/fechas';
 import { normalizarPagina } from '@/lib/reglas/paginacion';
 import { esquemaFiltrosEquipos, type FiltrosEquipos as Filtros } from '@/lib/validacion/esquemas';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -46,12 +49,13 @@ function enlacePagina(filtros: Filtros, pagina: number): string {
 }
 
 export default async function PanelSoporte({ searchParams }: Props) {
+  await soloSoporte();
   const parametros = await searchParams;
   const filtrado = esquemaFiltrosEquipos.safeParse(parametros);
   const filtros = filtrado.success ? filtrado.data : {};
   const pagina = normalizarPagina(parametros.pagina);
   // Todas las consultas en paralelo; la de alertas se comparte con el menú (React cache).
-  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen] = await Promise.all([
+  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen, pendientes] = await Promise.all([
     listarSalas(),
     paginarEquipos(filtros, pagina, TAMANO_PAGINA_EQUIPOS),
     candidatosDeLaPeticion(),
@@ -59,6 +63,7 @@ export default async function PanelSoporte({ searchParams }: Props) {
     serieActividad(),
     actividadReciente(4),
     cookies(),
+    incidenciasPendientes(5),
   ]);
   const equipos = resultado.filas;
   const candidatosSinVer = contarSinVer(
@@ -117,6 +122,10 @@ export default async function PanelSoporte({ searchParams }: Props) {
 
       <IndicadoresPanel salas={salas} incidencias={incidencias} />
 
+      <BloquePanel titulo={pendientes.total ? `Requiere atención · ${pendientes.total}` : 'Requiere atención'}>
+        <PendientesAtencion incidencias={pendientes.filas} total={pendientes.total} />
+      </BloquePanel>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <BloquePanel titulo="Actividad de los últimos 30 días" className="lg:col-span-2">
           <GraficoActividad serie={serie} />
@@ -127,6 +136,9 @@ export default async function PanelSoporte({ searchParams }: Props) {
           </BloquePanel>
           <BloquePanel titulo="Movimientos recientes">
             <ActividadReciente eventos={eventos} />
+            <Link href="/soporte/actividad" className="w-fit text-sm font-medium text-primario underline-offset-4 hover:underline">
+              Ver el registro de cambios
+            </Link>
           </BloquePanel>
         </div>
       </div>

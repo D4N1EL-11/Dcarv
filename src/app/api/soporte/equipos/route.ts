@@ -1,4 +1,4 @@
-import { exigirSesion } from '@/lib/auth/sesion';
+import { exigirSesion, exigirSoporte } from '@/lib/auth/sesion';
 import { crearEquipo, listarEquipos, paginarEquipos } from '@/lib/dataService';
 import { TAMANO_PAGINA_EQUIPOS } from '@/lib/config/soporte';
 import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
@@ -18,7 +18,7 @@ export const GET = conManejoDeErrores(async (request) => {
 });
 
 export const POST = conManejoDeErrores(async (request) => {
-  await exigirSesion();
+  await exigirSoporte();
   const datos = esquemaEquipo.parse(await leerCuerpo(request));
   return responderOk(await crearEquipo(datos), 201);
 });

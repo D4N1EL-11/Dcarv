@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
-import { DESTINO_POR_DEFECTO } from '@/lib/auth/redireccion';
+import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
+import { Icono } from '@/components/ui/Icono';
+import { DOMINIOS_SOPORTE, esRolValido, inicioPara, rolParaCorreo } from '@/lib/auth/permisos';
+import { rutaSegura } from '@/lib/auth/redireccion';
+import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -16,16 +21,23 @@ export default function RegisterPage() {
 	const [password, setPassword] = useState('');
 	const [confirmacion, setConfirmacion] = useState('');
 	const [errores, setErrores] = useState<Errores>({});
-	const [errorGeneral, setErrorGeneral] = useState('');
+	const [errorGeneral, setErrorGeneral] = useState<{ texto: string; cuentaExiste: boolean } | null>(null);
 	const [creada, setCreada] = useState(false);
 	const [enviando, setEnviando] = useState(false);
+	// A dónde volver después de registrarse (p. ej. el reporte de un equipo abierto desde su QR).
+	const [siguiente, setSiguiente] = useState<string | null>(null);
+	useEffect(() => {
+		setSiguiente(new URLSearchParams(window.location.search).get('siguiente'));
+	}, []);
 
 	function validar(): Errores {
 		const correo = email.trim();
 		const siguientes: Errores = {};
 		if (!correo) siguientes.email = 'Ingresa tu correo electrónico.';
 		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) siguientes.email = 'Ingresa un correo electrónico válido.';
-		if (password.length < 8) siguientes.password = 'La contraseña debe tener al menos 8 caracteres.';
+		if ([...password].length < LONGITUD_MINIMA_CONTRASENA) {
+			siguientes.password = `La contraseña debe tener al menos ${LONGITUD_MINIMA_CONTRASENA} caracteres.`;
+		}
 		if (!confirmacion) siguientes.confirmacion = 'Repite la contraseña.';
 		else if (confirmacion !== password) siguientes.confirmacion = 'Las contraseñas no coinciden.';
 		return siguientes;
@@ -33,7 +45,7 @@ export default function RegisterPage() {
 
 	async function enviar(evento: FormEvent<HTMLFormElement>) {
 		evento.preventDefault();
-		setErrorGeneral('');
+		setErrorGeneral(null);
 		const siguientes = validar();
 		setErrores(siguientes);
 		if (Object.keys(siguientes).length) return;
@@ -47,21 +59,26 @@ export default function RegisterPage() {
 			});
 			const resultado = (await respuesta.json().catch(() => ({}))) as {
 				error?: string;
-				data?: { sesionIniciada?: boolean };
+				code?: string;
+				data?: { sesionIniciada?: boolean; rol?: string };
 			};
 			if (!respuesta.ok) {
-				setErrorGeneral(resultado.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.');
+				setErrorGeneral({
+					texto: resultado.error || 'No se pudo crear la cuenta. Inténtalo de nuevo.',
+					cuentaExiste: resultado.code === 'EMAIL_EXISTS',
+				});
 				return;
 			}
 			// La cuenta queda activa al instante y con la sesión iniciada: no hay correo que esperar.
 			if (resultado.data?.sesionIniciada) {
-				router.replace(DESTINO_POR_DEFECTO);
+				const rol = esRolValido(resultado.data.rol) ? resultado.data.rol : 'viewer';
+				router.replace(siguiente ? rutaSegura(siguiente) : inicioPara(rol));
 				router.refresh();
 				return;
 			}
 			setCreada(true);
 		} catch {
-			setErrorGeneral('No hay conexión con el servidor. Inténtalo de nuevo.');
+			setErrorGeneral({ texto: 'No hay conexión con el servidor. Inténtalo de nuevo.', cuentaExiste: false });
 		} finally {
 			setEnviando(false);
 		}
@@ -84,11 +101,20 @@ export default function RegisterPage() {
 		);
 	}
 
+	const coinciden = Boolean(confirmacion) && confirmacion === password;
+	const correoLimpio = email.trim();
+	// Se avisa antes de crearla qué tipo de cuenta será, según el dominio del correo.
+	const tipoCuenta = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)
+		? rolParaCorreo(correoLimpio) === 'viewer'
+			? `Cuenta de reporte: podrás reportar fallas y seguir tus casos. Las cuentas de soporte usan un correo @${DOMINIOS_SOPORTE[0]}.`
+			: 'Cuenta de soporte: gestionarás salas, equipos, técnicos e incidencias.'
+		: undefined;
+
 	return (
 		<MarcoAcceso
 			etiqueta="Nueva cuenta"
 			titulo="Crear cuenta"
-			descripcion="Regístrate para gestionar las salas, los equipos y sus incidencias."
+			descripcion={`Con un correo @${DOMINIOS_SOPORTE[0]} entras al equipo de soporte; con cualquier otro, tu cuenta sirve para reportar fallas de los equipos y seguir tus casos.`}
 			pie={
 				<>
 					¿Ya tienes cuenta?{' '}
@@ -105,30 +131,33 @@ export default function RegisterPage() {
 					type="email"
 					autoComplete="email"
 					placeholder="nombre@dcarv.com"
+					autoFocus
 					value={email}
 					error={errores.email}
+					helperText={tipoCuenta}
 					onChange={(evento) => {
 						setEmail(evento.target.value);
 						setErrores((actual) => ({ ...actual, email: undefined }));
+						setErrorGeneral(null);
 					}}
 				/>
-				<Input
+				<CampoContrasena
 					id="password"
 					label="Contraseña"
-					type="password"
 					autoComplete="new-password"
-					placeholder="Mínimo 8 caracteres"
+					placeholder={`Mínimo ${LONGITUD_MINIMA_CONTRASENA} caracteres`}
 					value={password}
 					error={errores.password}
 					onChange={(evento) => {
 						setPassword(evento.target.value);
 						setErrores((actual) => ({ ...actual, password: undefined }));
 					}}
-				/>
-				<Input
+				>
+					<MedidorContrasena clave={password} email={correoLimpio} />
+				</CampoContrasena>
+				<CampoContrasena
 					id="confirmacion"
 					label="Confirmar contraseña"
-					type="password"
 					autoComplete="new-password"
 					placeholder="Repite la contraseña"
 					value={confirmacion}
@@ -137,16 +166,35 @@ export default function RegisterPage() {
 						setConfirmacion(evento.target.value);
 						setErrores((actual) => ({ ...actual, confirmacion: undefined }));
 					}}
-				/>
+				>
+					{coinciden && !errores.confirmacion ? (
+						<span className="flex items-center gap-1.5 text-xs text-funcional">
+							<Icono nombre="check" className="size-3.5" /> Las contraseñas coinciden.
+						</span>
+					) : null}
+				</CampoContrasena>
 
 				{errorGeneral ? (
-					<p className="-mt-1 text-sm text-baja" role="alert">
-						{errorGeneral}
-					</p>
+					<div className="-mt-1 rounded-lg border border-baja/30 bg-baja/10 px-3.5 py-2.5 text-sm text-baja" role="alert">
+						{errorGeneral.texto}
+						{errorGeneral.cuentaExiste ? (
+							<span className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+								<Link href="/login" className={CLASES_ENLACE_DORADO}>
+									Iniciar sesión
+								</Link>
+								<Link
+									href={`/recuperar-contrasena?email=${encodeURIComponent(correoLimpio)}`}
+									className={CLASES_ENLACE_DORADO}
+								>
+									Recuperar contraseña
+								</Link>
+							</span>
+						) : null}
+					</div>
 				) : null}
 
 				<Button type="submit" size="lg" className="mt-1 w-full" loading={enviando}>
-					Crear cuenta
+					{enviando ? 'Creando cuenta…' : 'Crear cuenta'}
 				</Button>
 			</form>
 		</MarcoAcceso>

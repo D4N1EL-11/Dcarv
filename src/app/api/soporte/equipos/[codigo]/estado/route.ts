@@ -1,4 +1,4 @@
-import { exigirSesion } from '@/lib/auth/sesion';
+import { exigirSoporte } from '@/lib/auth/sesion';
 import { cambiarEstadoEquipo } from '@/lib/dataService';
 import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 type Contexto = { params: Promise<{ codigo: string }> };
 
 export const PATCH = conManejoDeErrores(async (request, { params }: Contexto) => {
-  await exigirSesion();
+  await exigirSoporte();
   const { codigo } = await params;
   const cuerpo = esquemaEstadoEquipo.safeParse(await leerCuerpo(request));
   if (!cuerpo.success) throw new ErrorDeNegocio('ESTADO_INVALIDO'); // CU-04

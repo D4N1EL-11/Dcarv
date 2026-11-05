@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { validarNombreSala } from '@/lib/reglas/sala';
+import { registrarEvento } from './eventos';
 import type { FilaSala } from './tipos';
 
 export function listarSalas(): Promise<FilaSala[]> {
@@ -20,29 +21,32 @@ export function listarSalas(): Promise<FilaSala[]> {
 
 export async function crearSala(nombre: string): Promise<{ id: string }> {
   validarNombreSala(nombre);
-  const [sala] = await consultar<{ id: string }>(
-    'INSERT INTO salas (nombre) VALUES ($1) RETURNING id',
-    [nombre.trim()],
-  );
-  return sala!;
+  return conTransaccion(async (tx) => {
+    const { rows } = await tx.query<{ id: string }>('INSERT INTO salas (nombre) VALUES ($1) RETURNING id', [
+      nombre.trim(),
+    ]);
+    await registrarEvento(tx, { accion: 'sala_registrada', detalle: nombre.trim() });
+    return rows[0]!;
+  });
 }
 
 // El índice único ux_salas_nombre (sin distinguir mayúsculas) responde SALA_DUPLICADA.
 export async function renombrarSala(id: string, nombre: string): Promise<void> {
   validarNombreSala(nombre);
-  const filas = await consultar('UPDATE salas SET nombre = $1 WHERE id = $2 RETURNING id', [
-    nombre.trim(),
-    id,
-  ]);
-  if (!filas.length) throw new ErrorDeNegocio('SALA_NO_ENCONTRADA');
+  await conTransaccion(async (tx) => {
+    const anterior = await tx.query<{ nombre: string }>('SELECT nombre FROM salas WHERE id = $1 FOR UPDATE', [id]);
+    if (!anterior.rows[0]) throw new ErrorDeNegocio('SALA_NO_ENCONTRADA');
+    await tx.query('UPDATE salas SET nombre = $1 WHERE id = $2', [nombre.trim(), id]);
+    await registrarEvento(tx, { accion: 'sala_renombrada', detalle: `${anterior.rows[0].nombre} → ${nombre.trim()}` });
+  });
 }
 
 // Solo se elimina una sala sin equipos: los equipos no se borran (RN-15) y la llave foránea
 // ON DELETE RESTRICT respalda esta comprobación si dos personas actúan a la vez.
 export async function eliminarSala(id: string): Promise<void> {
   await conTransaccion(async (tx) => {
-    const sala = await tx.query('SELECT 1 FROM salas WHERE id = $1 FOR UPDATE', [id]);
-    if (!sala.rowCount) throw new ErrorDeNegocio('SALA_NO_ENCONTRADA');
+    const sala = await tx.query<{ nombre: string }>('SELECT nombre FROM salas WHERE id = $1 FOR UPDATE', [id]);
+    if (!sala.rows[0]) throw new ErrorDeNegocio('SALA_NO_ENCONTRADA');
     const { rows } = await tx.query<{ total: number }>(
       'SELECT COUNT(*) AS total FROM equipos WHERE sala_id = $1',
       [id],
@@ -55,6 +59,7 @@ export async function eliminarSala(id: string): Promise<void> {
       );
     }
     await tx.query('DELETE FROM salas WHERE id = $1', [id]);
+    await registrarEvento(tx, { accion: 'sala_eliminada', detalle: sala.rows[0].nombre });
   });
 }
 

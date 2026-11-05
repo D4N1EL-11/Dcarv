@@ -10,10 +10,13 @@ import {
   EVENTO_DATOS_CAMBIARON,
   leerVistosDelNavegador,
 } from '@/lib/alertasVistas';
+import { esSoporte, inicioPara, type Rol } from '@/lib/auth/permisos';
 import { BuscadorGlobal } from './BuscadorGlobal';
 import { MenuUsuario } from './MenuUsuario';
 
-const ENLACES: { href: string; texto: string; icono: NombreIcono }[] = [
+type Enlace = { href: string; texto: string; icono: NombreIcono };
+
+const ENLACES_SOPORTE: Enlace[] = [
   { href: '/soporte', texto: 'Panel', icono: 'panel' },
   { href: '/soporte/incidencias', texto: 'Incidencias', icono: 'incidencias' },
   { href: '/soporte/salas', texto: 'Salas', icono: 'salas' },
@@ -21,10 +24,18 @@ const ENLACES: { href: string; texto: string; icono: NombreIcono }[] = [
   { href: '/soporte/alertas', texto: 'Alertas', icono: 'alertas' },
 ];
 
-// candidatos: códigos de los candidatos a baja; vistos: los que ya se vieron en /soporte/alertas.
-type Props = { email: string; candidatos: string[]; vistos: string[] };
+// Una cuenta de reporte solo reporta fallas y sigue sus casos (lib/auth/permisos.ts).
+const ENLACES_REPORTE: Enlace[] = [
+  { href: '/soporte/reportar', texto: 'Reportar falla', icono: 'incidencias' },
+  { href: '/soporte/mis-reportes', texto: 'Mis reportes', icono: 'check' },
+];
 
-export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vistos: vistosIniciales }: Props) {
+// candidatos: códigos de los candidatos a baja; vistos: los que ya se vieron en /soporte/alertas.
+type Props = { email: string; rol: Rol; candidatos: string[]; vistos: string[] };
+
+export function NavegacionSoporte({ email, rol, candidatos: candidatosIniciales, vistos: vistosIniciales }: Props) {
+  const soporte = esSoporte(rol);
+  const enlaces = soporte ? ENLACES_SOPORTE : ENLACES_REPORTE;
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [candidatos, setCandidatos] = useState(candidatosIniciales);
@@ -39,6 +50,7 @@ export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vist
   // alertas se pide de nuevo al cambiar de página y cuando una acción avisa que hubo cambios
   // (por ejemplo, dar de baja un equipo lo saca de los candidatos).
   const actualizar = useCallback(async () => {
+    if (!soporte) return; // las alertas son de soporte
     const turno = ++ultimoTurno.current; // si dos consultas se cruzan, vale la última
     try {
       const respuesta = await fetch('/api/soporte/alertas', { cache: 'no-store' });
@@ -49,7 +61,7 @@ export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vist
       // Sin red: se conserva el último número conocido.
     }
     setVistos(leerVistosDelNavegador());
-  }, []);
+  }, [soporte]);
 
   useEffect(() => {
     if (primeraRuta.current) {
@@ -79,7 +91,7 @@ export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vist
   return (
     <header className="sticky top-0 z-40 bg-fondo/85 text-texto backdrop-blur-md print:hidden">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3.5">
-        <Link href="/soporte" className="group mr-2 flex items-center gap-3">
+        <Link href={inicioPara(rol)} className="group mr-2 flex items-center gap-3">
           <span className="grid size-8 place-items-center rounded-full border border-primario/50 font-titulo text-lg font-semibold text-primario transition group-hover:border-primario">
             D
           </span>
@@ -93,7 +105,7 @@ export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vist
           aria-label="Principal"
           className={`${abierto ? 'flex' : 'hidden'} absolute left-0 right-0 top-full flex-col gap-1 border-b border-borde bg-fondo p-4 shadow-2xl shadow-black/50 md:static md:flex md:flex-1 md:flex-row md:gap-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
         >
-          {ENLACES.map(({ href, texto, icono }) => (
+          {enlaces.map(({ href, texto, icono }) => (
             <Link
               key={href}
               href={href}
@@ -115,8 +127,8 @@ export function NavegacionSoporte({ email, candidatos: candidatosIniciales, vist
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <BuscadorGlobal />
-          <MenuUsuario email={email} />
+          {soporte ? <BuscadorGlobal /> : null}
+          <MenuUsuario email={email} rol={rol} />
           <button
             type="button"
             className="rounded-lg border border-borde px-3 py-1.5 text-sm text-texto-suave transition hover:border-primario/60 hover:text-primario md:hidden"

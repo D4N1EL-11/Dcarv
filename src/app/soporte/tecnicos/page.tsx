@@ -9,6 +9,7 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { DIAS_REASIGNACION } from '@/lib/config/soporte';
 import { listarTecnicos } from '@/lib/dataService';
 import { plural } from '@/lib/formato';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 export const metadata: Metadata = { title: 'Técnicos' };
 
@@ -20,6 +21,7 @@ function iniciales(nombre: string): string {
 }
 
 export default async function PaginaTecnicos() {
+  await soloSoporte();
   const tecnicos = await listarTecnicos();
   const activos = tecnicos.filter((t) => t.activo).length;
   const mayorCarga = Math.max(1, ...tecnicos.map((t) => t.enRevision));

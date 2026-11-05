@@ -13,11 +13,12 @@ type Props = {
   etiqueta: string;
   textoBoton: string;
   maximo: number;
+  ejemplo: string;
   validar: (nombre: string) => string | undefined;
 };
 
 // Base común de FormularioSala y FormularioTecnico: ambos solo piden un nombre.
-export function FormularioNombre({ url, etiqueta, textoBoton, maximo, validar }: Props) {
+export function FormularioNombre({ url, etiqueta, textoBoton, maximo, ejemplo, validar }: Props) {
   const { refrescar, refrescando } = useRefrescar();
   const { mostrar } = useAvisos();
   const [nombre, setNombre] = useState('');
@@ -45,19 +46,25 @@ export function FormularioNombre({ url, etiqueta, textoBoton, maximo, validar }:
   }
 
   return (
+    // Una sola fila (campo y botón) desde 640 px: el formulario pide un solo dato.
     <form onSubmit={enviar} className="grid gap-3" noValidate>
-      <Campo
-        etiqueta={etiqueta}
-        value={nombre}
-        maxLength={maximo}
-        onChange={(evento) => setNombre(evento.target.value)}
-      />
-      {error ? <Aviso tipo="error">{error}</Aviso> : null}
-      <div>
-        <Boton type="submit" cargando={cargando || refrescando}>
+      <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <Campo
+          etiqueta={etiqueta}
+          value={nombre}
+          maxLength={maximo}
+          placeholder={ejemplo}
+          autoComplete="off"
+          onChange={(evento) => {
+            setNombre(evento.target.value);
+            setError('');
+          }}
+        />
+        <Boton type="submit" cargando={cargando || refrescando} className="sm:min-w-44">
           {textoBoton}
         </Boton>
       </div>
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
     </form>
   );
 }

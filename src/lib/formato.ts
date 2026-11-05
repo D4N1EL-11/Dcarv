@@ -62,3 +62,73 @@ export function tiempoRelativo(momentoIso: string, ahora: Date = new Date()): st
 export function plural(cantidad: number, singular: string, varios: string): string {
   return `${cantidad} ${cantidad === 1 ? singular : varios}`;
 }
+
+// Cuánto tardó en cerrarse una incidencia: del día del reporte al día del cierre (ambos en Bogotá).
+export function textoResolucion(diasHastaCierre: number): string {
+  if (diasHastaCierre <= 0) return 'resuelta el mismo día';
+  return `resuelta en ${plural(diasHastaCierre, 'día', 'días')}`;
+}
+
+// Promedio de días de cierre con un decimal y coma decimal (es-CO); null si no hubo cierres.
+export function textoPromedioDias(promedio: number | null): string {
+  if (promedio === null) return 'Sin cierres';
+  const redondeado = Math.round(promedio * 10) / 10;
+  if (redondeado === 0) return 'Mismo día';
+  const texto = redondeado.toLocaleString('es-CO', { maximumFractionDigits: 1 });
+  return `${texto} ${redondeado === 1 ? 'día' : 'días'}`;
+}
+
+const formatoHora = new Intl.DateTimeFormat('es-CO', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Bogota',
+});
+
+// Hora de Colombia de un instante (vencimiento de la sesión): '3:45 p. m.'.
+export function formatearHora(instante: Date): string {
+  return formatoHora.format(instante).replace(/\s/g, ' ');
+}
+
+// Texto de un evento del registro de cambios, sin el actor: "reportó INC-0080 en PC-01: “No enciende”".
+type EventoParaTexto = { accion: string; equipoCodigo: string | null; numeroCaso: string | null; detalle: string };
+
+export function textoEvento(evento: EventoParaTexto): string {
+  const { accion, equipoCodigo: equipo, numeroCaso: caso, detalle } = evento;
+  const en = equipo ? ` en ${equipo}` : '';
+  switch (accion) {
+    case 'incidencia_reportada':
+      return `reportó ${caso ?? 'una incidencia'}${en}${detalle ? `: “${detalle}”` : ''}`;
+    case 'incidencia_asignada':
+      return `asignó ${caso ?? 'una incidencia'} ${detalle}`.trim();
+    case 'incidencia_reasignada':
+      return `reasignó ${caso ?? 'una incidencia'} ${detalle}`.trim();
+    case 'incidencia_cerrada':
+      return `cerró ${caso ?? 'una incidencia'}${en}`;
+    case 'foto_agregada':
+      return `agregó una foto a ${caso ?? 'una incidencia'}${en}`;
+    case 'estado_equipo':
+      return `cambió el estado de ${equipo ?? 'un equipo'}: ${detalle}`;
+    case 'equipo_registrado':
+      return `registró el equipo ${equipo ?? ''} ${detalle}`.replace(/\s+/g, ' ').trim();
+    case 'equipo_trasladado':
+      return `trasladó ${equipo ?? 'un equipo'} ${detalle}`.trim();
+    case 'sala_registrada':
+      return `registró la sala ${detalle}`;
+    case 'sala_renombrada':
+      return `renombró la sala ${detalle}`;
+    case 'sala_eliminada':
+      return `eliminó la sala ${detalle}`;
+    case 'tecnico_registrado':
+      return `registró al técnico ${detalle}`;
+    case 'tecnico_renombrado':
+      return `renombró al técnico ${detalle}`;
+    case 'tecnico_activado':
+      return `activó al técnico ${detalle}`;
+    case 'tecnico_desactivado':
+      return `desactivó al técnico ${detalle}`;
+    case 'rol_cambiado':
+      return `cambió el rol de ${detalle}`;
+    default:
+      return detalle || accion;
+  }
+}

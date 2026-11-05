@@ -1,4 +1,4 @@
-import { exigirSesion } from '@/lib/auth/sesion';
+import { exigirSoporte } from '@/lib/auth/sesion';
 import { listarIncidencias, paginarIncidencias } from '@/lib/dataService';
 import { TAMANO_PAGINA_INCIDENCIAS } from '@/lib/config/soporte';
 import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 // Sin ?pagina responde la lista (como antes); con ?pagina=N responde { filas, total, pagina, ... }.
 export const GET = conManejoDeErrores(async (request) => {
-  await exigirSesion();
+  await exigirSoporte();
   const parametros = new URL(request.url).searchParams;
   const filtros = esquemaFiltrosIncidencias.parse(Object.fromEntries(parametros));
   if (!parametros.has('pagina')) return responderOk(await listarIncidencias(filtros));

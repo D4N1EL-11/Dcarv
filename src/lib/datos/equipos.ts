@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { DIAS_VENTANA_ALERTA, LIMITE_LISTADO } from '@/lib/config/soporte';
 import { conTransaccion, consultar, crearParametros } from '@/lib/db/conexion';
 import {
+  ETIQUETA_EQUIPO,
   esEstadoEquipoValido,
   normalizarCodigo,
   validarDatosEquipo,
@@ -11,6 +12,7 @@ import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
 import { desplazamiento } from '@/lib/reglas/paginacion';
 import { consultarHistorial } from './incidencias';
+import { registrarEvento } from './eventos';
 import { aPagina } from './paginar';
 import { obtenerSalaActiva } from './salas';
 import type { DetalleEquipo, FilaEquipo, Pagina } from './tipos';
@@ -68,11 +70,12 @@ export async function crearEquipo(d: {
 }): Promise<{ id: string; codigo: string }> {
   validarDatosEquipo({ codigo: d.codigo, sala: d.salaId });
   return conTransaccion(async (tx) => {
-    await obtenerSalaActiva(tx, d.salaId);
+    const sala = await obtenerSalaActiva(tx, d.salaId);
     const { rows } = await tx.query<{ id: string; codigo: string }>(
       'INSERT INTO equipos (codigo, sala_id) VALUES ($1, $2) RETURNING id, codigo', // RN-02
       [normalizarCodigo(d.codigo), d.salaId],
     );
+    await registrarEvento(tx, { accion: 'equipo_registrado', equipoCodigo: rows[0]!.codigo, detalle: `en ${sala.nombre}` });
     return rows[0]!;
   });
 }
@@ -86,13 +89,19 @@ export async function obtenerEquipo(codigo: string): Promise<DetalleEquipo> {
   return { equipo, historial: await consultarHistorial(limpio) };
 }
 
+// RN-07: cualquier estado, sin secuencia. Queda en el registro de cambios solo si cambió.
 export async function cambiarEstadoEquipo(codigo: string, estado: string): Promise<void> {
   if (!esEstadoEquipoValido(estado)) throw new ErrorDeNegocio('ESTADO_INVALIDO');
-  const filas = await consultar('UPDATE equipos SET estado = $1 WHERE codigo = $2 RETURNING id', [
-    estado,
-    normalizarCodigo(codigo),
-  ]);
-  if (!filas.length) throw new ErrorDeNegocio('EQUIPO_NO_ENCONTRADO');
+  await conTransaccion(async (tx) => {
+    const equipo = await obtenerEquipoPorCodigo(tx, codigo);
+    if (equipo.estado === estado) return;
+    await tx.query('UPDATE equipos SET estado = $1 WHERE id = $2', [estado, equipo.id]);
+    await registrarEvento(tx, {
+      accion: 'estado_equipo',
+      equipoCodigo: normalizarCodigo(codigo),
+      detalle: `${ETIQUETA_EQUIPO[equipo.estado]} → ${ETIQUETA_EQUIPO[estado]}`,
+    });
+  });
 }
 
 // Trasladar un equipo a otra sala (inventario que cambia de lugar). El código, el estado y el
@@ -102,6 +111,7 @@ export async function trasladarEquipo(codigo: string, salaId: string): Promise<{
     const equipo = await obtenerEquipoPorCodigo(tx, codigo);
     const sala = await obtenerSalaActiva(tx, salaId);
     await tx.query('UPDATE equipos SET sala_id = $1 WHERE id = $2', [sala.id, equipo.id]);
+    await registrarEvento(tx, { accion: 'equipo_trasladado', equipoCodigo: normalizarCodigo(codigo), detalle: `a ${sala.nombre}` });
     return { sala: sala.nombre };
   });
 }

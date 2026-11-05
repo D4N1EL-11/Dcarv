@@ -35,6 +35,7 @@ export const esquemaFiltrosIncidencias = z.object({
   equipoCodigo: opcional(z.string().trim().max(40)),
   busqueda: opcional(z.string().trim().max(80)),
   tecnicoId: opcional(z.uuid()),
+  salaId: opcional(z.uuid()),
 });
 
 const nombreTecnico = z

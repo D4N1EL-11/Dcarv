@@ -64,14 +64,31 @@ export function ResumenSalas({ salas, seleccionada, conRegistro = false }: Props
             </dl>
 
             {conRegistro ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-3">
-                <Link
-                  href={`/soporte/equipos/nuevo?salaId=${sala.id}`}
-                  className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
-                >
-                  Registrar equipos aquí
-                </Link>
-                <AccionesSala id={sala.id} nombre={sala.nombre} totalEquipos={sala.totalEquipos} />
+              // Dos filas fijas: enlaces y, debajo, las acciones sobre la sala (alineadas al mismo borde).
+              <div className="grid gap-1.5 border-t border-borde pt-3">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <Link
+                    href={`/soporte/equipos/nuevo?salaId=${sala.id}`}
+                    className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
+                  >
+                    Registrar equipos
+                  </Link>
+                  <Link
+                    href={`/soporte/incidencias?salaId=${sala.id}`}
+                    className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
+                  >
+                    Ver incidencias
+                  </Link>
+                  <Link
+                    href={`/soporte/etiquetas?salaId=${sala.id}`}
+                    className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
+                  >
+                    Etiquetas QR
+                  </Link>
+                </div>
+                <div className="-ml-2">
+                  <AccionesSala id={sala.id} nombre={sala.nombre} totalEquipos={sala.totalEquipos} />
+                </div>
               </div>
             ) : null}
           </li>

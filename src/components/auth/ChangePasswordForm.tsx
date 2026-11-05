@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { CampoContrasena } from '@/components/auth/CampoContrasena';
+import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
 
+// El correo sale de la sesión y no se edita: el servidor ya exige que coincida con ella.
 export function ChangePasswordForm({ email }: { email: string }) {
-	const [accountEmail, setAccountEmail] = useState(email);
 	const [currentPassword, setCurrentPassword] = useState('');
 	const [newPassword, setNewPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,12 +20,12 @@ export function ChangePasswordForm({ email }: { email: string }) {
 		setError('');
 		setNotice('');
 
-		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail.trim())) {
-			setError('Ingresa un correo electrónico válido.');
+		if (!currentPassword) {
+			setError('Escribe tu contraseña actual.');
 			return;
 		}
-		if (newPassword.length < 8) {
-			setError('La nueva contraseña debe tener al menos 8 caracteres.');
+		if ([...newPassword].length < LONGITUD_MINIMA_CONTRASENA) {
+			setError(`La nueva contraseña debe tener al menos ${LONGITUD_MINIMA_CONTRASENA} caracteres.`);
 			return;
 		}
 		if (newPassword !== confirmPassword) {
@@ -40,15 +42,15 @@ export function ChangePasswordForm({ email }: { email: string }) {
 			const response = await fetch('/api/auth/change-password', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email: accountEmail.trim(), currentPassword, newPassword }),
+				body: JSON.stringify({ email, currentPassword, newPassword }),
 			});
-			const result = (await response.json()) as { error?: string };
+			const result = (await response.json().catch(() => ({}))) as { error?: string };
 			if (!response.ok) throw new Error(result.error || 'No se pudo actualizar la contraseña.');
 
 			setCurrentPassword('');
 			setNewPassword('');
 			setConfirmPassword('');
-			setNotice('Tu contraseña se actualizó correctamente.');
+			setNotice('Tu contraseña se actualizó. Úsala la próxima vez que inicies sesión.');
 		} catch (caught) {
 			setError(caught instanceof Error ? caught.message : 'No se pudo actualizar la contraseña.');
 		} finally {
@@ -57,49 +59,43 @@ export function ChangePasswordForm({ email }: { email: string }) {
 	}
 
 	return (
-		<form className="mt-6 grid max-w-xl gap-5" onSubmit={submit}>
-			<Input
-				id="account-email"
-				label="Correo de la cuenta"
-				type="email"
-				autoComplete="email"
-				required
-				value={accountEmail}
-				onChange={(event) => setAccountEmail(event.target.value)}
-			/>
-			<Input
+		<form className="grid gap-5" onSubmit={submit} noValidate>
+			{/* Para que el gestor de contraseñas del navegador sepa de qué cuenta es. */}
+			<input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
+			<CampoContrasena
 				id="current-password"
 				label="Contraseña actual"
-				type="password"
 				autoComplete="current-password"
-				required
 				value={currentPassword}
 				onChange={(event) => setCurrentPassword(event.target.value)}
 			/>
-			<Input
+			<CampoContrasena
 				id="new-password"
 				label="Nueva contraseña"
-				type="password"
 				autoComplete="new-password"
-				minLength={8}
-				helperText="Mínimo 8 caracteres."
-				required
+				placeholder={`Mínimo ${LONGITUD_MINIMA_CONTRASENA} caracteres`}
 				value={newPassword}
 				onChange={(event) => setNewPassword(event.target.value)}
-			/>
-			<Input
+			>
+				<MedidorContrasena clave={newPassword} email={email} />
+			</CampoContrasena>
+			<CampoContrasena
 				id="confirm-password"
 				label="Confirmar nueva contraseña"
-				type="password"
 				autoComplete="new-password"
-				required
 				value={confirmPassword}
 				onChange={(event) => setConfirmPassword(event.target.value)}
 			/>
-			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
-			{notice ? <p role="status" className="text-sm text-funcional">{notice}</p> : null}
+			{error ? (
+				<p role="alert" className="rounded-lg border border-baja/30 bg-baja/10 px-3.5 py-2.5 text-sm text-baja">{error}</p>
+			) : null}
+			{notice ? (
+				<p role="status" className="rounded-lg border border-funcional/30 bg-funcional/10 px-3.5 py-2.5 text-sm text-funcional">{notice}</p>
+			) : null}
 			<div>
-				<Button type="submit" loading={saving}>Actualizar contraseña</Button>
+				<Button type="submit" loading={saving}>
+					{saving ? 'Actualizando…' : 'Actualizar contraseña'}
+				</Button>
 			</div>
 		</form>
 	);

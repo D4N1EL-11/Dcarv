@@ -27,6 +27,20 @@ async function main() {
   await cliente.connect();
   try {
     await cliente.query('BEGIN');
+    // Registro de cambios (M4) de esos datos: por código de equipo o por nombre de sala/técnico.
+    let eventos = { rowCount: 0 };
+    const hayEventos = await cliente.query("SELECT to_regclass('public.eventos') IS NOT NULL AS existe");
+    if (hayEventos.rows[0].existe) {
+      eventos = await cliente.query(
+        `DELETE FROM eventos
+          WHERE equipo_codigo IN (SELECT codigo FROM equipos WHERE sala_id IN (${SALAS}))
+             OR (split_part(accion, '_', 1) IN ('sala', 'tecnico') AND detalle ILIKE ANY($2))`,
+        [prefijos, prefijos.map((p) => `%${p}`)],
+      );
+    }
+    // Intentos de acceso de las cuentas de prueba (M5).
+    const hayIntentos = await cliente.query("SELECT to_regclass('public.intentos_acceso') IS NOT NULL AS existe");
+    if (hayIntentos.rows[0].existe) await cliente.query("DELETE FROM intentos_acceso WHERE email LIKE 'prueba-%'");
     const incidencias = await cliente.query(
       `DELETE FROM incidencias WHERE equipo_id IN (${EQUIPOS})`,
       [prefijos],
@@ -36,7 +50,7 @@ async function main() {
     const tecnicos = await cliente.query(`DELETE FROM tecnicos WHERE nombre ILIKE ANY($1)`, [prefijos]);
     await cliente.query('COMMIT');
     console.log(
-      `Borrados (${prefijos.join(', ')}): ${incidencias.rowCount} incidencias, ${equipos.rowCount} equipos, ${salas.rowCount} salas, ${tecnicos.rowCount} técnicos.`,
+      `Borrados (${prefijos.join(', ')}): ${incidencias.rowCount} incidencias, ${equipos.rowCount} equipos, ${salas.rowCount} salas, ${tecnicos.rowCount} técnicos, ${eventos.rowCount} eventos.`,
     );
   } catch (error) {
     await cliente.query('ROLLBACK');

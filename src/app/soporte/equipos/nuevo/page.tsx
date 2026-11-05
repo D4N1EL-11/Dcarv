@@ -7,12 +7,14 @@ import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPagina } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { listarSalas } from '@/lib/dataService';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 export const metadata: Metadata = { title: 'Registrar equipo' };
 
 type Props = { searchParams: Promise<{ salaId?: string | string[] }> };
 
 export default async function PaginaNuevoEquipo({ searchParams }: Props) {
+  await soloSoporte();
   const [salas, { salaId }] = await Promise.all([listarSalas(), searchParams]);
   const opciones = salas.map(({ id, nombre }) => ({ id, nombre }));
   // Solo se preselecciona una sala que exista.

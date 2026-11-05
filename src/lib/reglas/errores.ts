@@ -11,11 +11,15 @@ export type CodigoError =
   | 'INCIDENCIA_NO_ASIGNABLE'
   | 'TECNICO_DUPLICADO'
   | 'TECNICO_NO_ENCONTRADO'
+  | 'SIN_PERMISO'
+  | 'USUARIO_NO_ENCONTRADO'
   | 'ERROR_INTERNO';
 
 export const MENSAJES: Record<CodigoError, string> = {
   DATOS_INVALIDOS: 'Revise los datos ingresados.',
   NO_AUTORIZADO: 'Debe iniciar sesión.',
+  SIN_PERMISO: 'Su cuenta solo puede reportar fallas. Esta acción es del equipo de soporte.',
+  USUARIO_NO_ENCONTRADO: 'La cuenta no existe.',
   SALA_DUPLICADA: 'Ya existe una sala con ese nombre.',
   SALA_NO_ENCONTRADA: 'La sala no existe.',
   CODIGO_DUPLICADO: 'Ya existe un equipo con ese código.',
@@ -32,6 +36,8 @@ export const MENSAJES: Record<CodigoError, string> = {
 export const ESTADO_HTTP: Record<CodigoError, number> = {
   DATOS_INVALIDOS: 400,
   NO_AUTORIZADO: 401,
+  SIN_PERMISO: 403,
+  USUARIO_NO_ENCONTRADO: 404,
   SALA_DUPLICADA: 409,
   SALA_NO_ENCONTRADA: 404,
   CODIGO_DUPLICADO: 409,

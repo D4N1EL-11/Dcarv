@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { HistorialIncidencias } from '@/components/soporte/HistorialIncidencias';
+import { ResumenIncidencias } from '@/components/soporte/ResumenIncidencias';
 import { Boton, clasesBoton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { EncabezadoPagina } from '@/components/ui/Encabezado';
@@ -12,13 +13,16 @@ import { ESTADOS_INCIDENCIA, TAMANO_PAGINA_INCIDENCIAS } from '@/lib/config/sopo
 import { tecnicosDeLaPeticion } from '@/lib/consultasDePagina';
 import {
   contarIncidenciasPorEstado,
+  listarSalas,
   paginarIncidencias,
+  resumenCierres,
   type ConteoIncidencias,
   type FiltrosIncidencias,
 } from '@/lib/dataService';
 import { etiquetaEstadoIncidencia, plural } from '@/lib/formato';
 import { normalizarPagina } from '@/lib/reglas/paginacion';
 import { esquemaFiltrosIncidencias } from '@/lib/validacion/esquemas';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 export const metadata: Metadata = { title: 'Incidencias' };
 
@@ -30,7 +34,7 @@ function enlace(filtros: FiltrosIncidencias, cambios: Partial<FiltrosIncidencias
   const { pagina = 1, ...resto } = cambios;
   const valores = { ...filtros, ...resto };
   const consulta = new URLSearchParams();
-  for (const nombre of ['estado', 'busqueda', 'equipoCodigo', 'tecnicoId'] as const) {
+  for (const nombre of ['estado', 'busqueda', 'equipoCodigo', 'tecnicoId', 'salaId'] as const) {
     const valor = valores[nombre];
     if (valor) consulta.set(nombre, valor);
   }
@@ -80,21 +84,27 @@ function FiltroActivo({ texto, quitar }: { texto: string; quitar: string }) {
 }
 
 export default async function PaginaIncidencias({ searchParams }: Props) {
+  await soloSoporte();
   const parametros = await searchParams;
   const filtrado = esquemaFiltrosIncidencias.safeParse(parametros);
   const filtros: FiltrosIncidencias = filtrado.success ? filtrado.data : {};
   const pagina = normalizarPagina(parametros.pagina);
-  // Las pestañas cuentan con los demás filtros aplicados, para que coincidan con la lista.
-  const [resultado, tecnicos, conteo] = await Promise.all([
+  // Las pestañas y el resumen cuentan con los demás filtros aplicados, para que coincidan con la lista.
+  const sinEstado = {
+    equipoCodigo: filtros.equipoCodigo,
+    busqueda: filtros.busqueda,
+    tecnicoId: filtros.tecnicoId,
+    salaId: filtros.salaId,
+  };
+  const [resultado, tecnicos, conteo, salas, resumen] = await Promise.all([
     paginarIncidencias(filtros, pagina, TAMANO_PAGINA_INCIDENCIAS),
     tecnicosDeLaPeticion(),
-    contarIncidenciasPorEstado({
-      equipoCodigo: filtros.equipoCodigo,
-      busqueda: filtros.busqueda,
-      tecnicoId: filtros.tecnicoId,
-    }),
+    contarIncidenciasPorEstado(sinEstado),
+    listarSalas(),
+    resumenCierres(sinEstado),
   ]);
   const tecnicoFiltrado = tecnicos.find((t) => t.id === filtros.tecnicoId);
+  const salaFiltrada = salas.find((s) => s.id === filtros.salaId);
   const consultaExportar = enlace(filtros).split('?')[1];
 
   return (
@@ -113,13 +123,15 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
         </a>
       </EncabezadoPagina>
 
+      <ResumenIncidencias conteo={conteo} resumen={resumen} />
+
       <Pestanas filtros={filtros} conteo={conteo} />
 
       {/* Formulario GET: funciona sin JavaScript y deja los filtros en la URL. */}
       <form
         method="get"
         action="/soporte/incidencias"
-        className="grid items-end gap-3 sm:grid-cols-[2fr_1fr_auto]"
+        className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
       >
         {filtros.estado ? <input type="hidden" name="estado" value={filtros.estado} /> : null}
         {filtros.equipoCodigo ? (
@@ -132,6 +144,12 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
           placeholder="Número de caso, código de equipo o texto de la falla"
           defaultValue={filtros.busqueda ?? ''}
           maxLength={80}
+        />
+        <Selector
+          etiqueta="Sala"
+          name="salaId"
+          defaultValue={filtros.salaId ?? ''}
+          opciones={[{ valor: '', texto: 'Todas las salas' }, ...salas.map((s) => ({ valor: s.id, texto: s.nombre }))]}
         />
         <Selector
           etiqueta="Técnico"
@@ -147,8 +165,11 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
         </Boton>
       </form>
 
-      {filtros.equipoCodigo || tecnicoFiltrado || filtros.busqueda ? (
-        <div className="flex flex-wrap gap-2">
+      {filtros.equipoCodigo || tecnicoFiltrado || filtros.busqueda || salaFiltrada ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {salaFiltrada ? (
+            <FiltroActivo texto={`Sala: ${salaFiltrada.nombre}`} quitar={enlace(filtros, { salaId: undefined })} />
+          ) : null}
           {filtros.equipoCodigo ? (
             <FiltroActivo
               texto={`Equipo ${filtros.equipoCodigo}`}
@@ -167,12 +188,19 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
               quitar={enlace(filtros, { busqueda: undefined })}
             />
           ) : null}
+          <Link
+            href={enlace({ estado: filtros.estado })}
+            className="px-2 text-sm text-texto-suave underline-offset-4 hover:text-primario hover:underline"
+          >
+            Quitar todos
+          </Link>
         </div>
       ) : null}
 
       <p role="status" className="text-sm text-texto-suave">
         {plural(resultado.total, 'incidencia', 'incidencias')}
         {filtros.estado ? ` en estado "${etiquetaEstadoIncidencia(filtros.estado)}"` : ''}
+        {salaFiltrada ? ` en ${salaFiltrada.nombre}` : ''}
         {filtros.equipoCodigo ? ` del equipo ${filtros.equipoCodigo}` : ''}
         {tecnicoFiltrado ? ` de ${tecnicoFiltrado.nombre}` : ''}
       </p>

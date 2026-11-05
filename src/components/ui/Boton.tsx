@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react';
+import { Spinner } from './spinner';
 
 const VARIANTES = {
   primario: 'bg-primario text-fondo hover:bg-primario-fuerte',
@@ -33,10 +34,11 @@ export function Boton({
       type={type}
       disabled={disabled || cargando}
       aria-busy={cargando}
-      className={`${clasesBoton(variante)} ${className}`}
+      className={`${clasesBoton(variante)} gap-2 ${cargando ? 'disabled:cursor-wait disabled:opacity-80' : ''} ${className}`}
       {...resto}
     >
-      {cargando ? 'Procesando...' : children}
+      {cargando ? <Spinner size="sm" decorativo /> : null}
+      {children}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { activarCuenta, buscarCuentaPendiente, iniciarSesion, ponerCookieSesion } from '@/lib/auth/acceso';
+import { activarCuenta, buscarCuentaPendiente, fijarRol, iniciarSesion, ponerCookieSesion } from '@/lib/auth/acceso';
+import { rolParaCorreo } from '@/lib/auth/permisos';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 const registerSchema = z.object({
@@ -23,24 +24,27 @@ export async function POST(request: Request) {
 	const parsed = registerSchema.safeParse(body);
 	if (!parsed.success) return error(400, 'Datos inválidos', 'VALIDATION_ERROR');
 	const { email, password } = parsed.data;
+	// @usa.edu.co nace como soporte; cualquier otro correo, como cuenta de reporte (lib/auth/permisos.ts).
+	const rol = rolParaCorreo(email);
 
 	try {
 		// La cuenta se crea ya confirmada: no se depende de un correo de confirmación (ver lib/auth/acceso.ts).
-		const { error: errorCreacion } = await createSupabaseAdminClient().auth.admin.createUser({
+		const { data: creada, error: errorCreacion } = await createSupabaseAdminClient().auth.admin.createUser({
 			email,
 			password,
 			email_confirm: true,
 		});
 
+		let id = creada.user?.id ?? null;
 		if (errorCreacion) {
 			if (errorCreacion.code === 'email_exists' || errorCreacion.code === 'user_already_exists') {
 				// Una cuenta que quedó esperando el correo de confirmación nunca pudo usarse: se activa
 				// con la contraseña nueva. Una cuenta ya activa no se toca.
-				const pendiente = await buscarCuentaPendiente(email);
-				if (!pendiente) {
+				id = await buscarCuentaPendiente(email);
+				if (!id) {
 					return error(409, 'Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.', 'EMAIL_EXISTS');
 				}
-				await activarCuenta(pendiente, password);
+				await activarCuenta(id, password);
 			} else if (errorCreacion.code === 'weak_password') {
 				return error(400, 'La contraseña es muy débil. Usa una más larga o combina letras y números.', 'WEAK_PASSWORD');
 			} else if ((errorCreacion.status ?? 500) >= 500) {
@@ -50,12 +54,15 @@ export async function POST(request: Request) {
 			}
 		}
 
+		// Antes de iniciar sesión, para que el token ya lleve el rol correcto.
+		if (id) await fijarRol(id, rol);
+
 		const acceso = await iniciarSesion(email, password);
 		if (!acceso.ok) {
-			return NextResponse.json({ success: true, data: { sesionIniciada: false } }, { status: 201 });
+			return NextResponse.json({ success: true, data: { sesionIniciada: false, rol } }, { status: 201 });
 		}
 		return ponerCookieSesion(
-			NextResponse.json({ success: true, data: { ...acceso.usuario, sesionIniciada: true } }, { status: 201 }),
+			NextResponse.json({ success: true, data: { ...acceso.usuario, sesionIniciada: true, rol } }, { status: 201 }),
 			acceso.token,
 		);
 	} catch {

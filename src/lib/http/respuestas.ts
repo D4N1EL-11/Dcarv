@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
+import { conContexto } from '@/lib/auth/contexto';
 import {
   ErrorDeNegocio,
   ESTADO_HTTP,
@@ -31,16 +32,19 @@ export function responderError(error: unknown): NextResponse {
   return cuerpoError('ERROR_INTERNO', MENSAJES.ERROR_INTERNO, null);
 }
 
+// Además de traducir errores, abre el contexto de la petición: exigirSesion() anota ahí quién
+// actúa y el registro de cambios lo lee (lib/auth/contexto.ts).
 export function conManejoDeErrores<C = unknown>(
   manejador: (request: Request, contexto: C) => Promise<Response>,
 ) {
-  return async (request: Request, contexto: C): Promise<Response> => {
-    try {
-      return await manejador(request, contexto);
-    } catch (error) {
-      return responderError(error);
-    }
-  };
+  return (request: Request, contexto: C): Promise<Response> =>
+    conContexto(async () => {
+      try {
+        return await manejador(request, contexto);
+      } catch (error) {
+        return responderError(error);
+      }
+    });
 }
 
 export async function leerCuerpo(request: Request): Promise<unknown> {

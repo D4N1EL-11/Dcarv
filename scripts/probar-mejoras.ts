@@ -5,21 +5,32 @@ import {
   asignarTecnico,
   buscarGlobal,
   cambiarActividadTecnico,
+  cambiarEstadoEquipo,
+  cambiarRol,
   cerrarConexion,
   cerrarIncidencia,
   contarIncidenciasPorEstado,
   crearEquipo,
   crearSala,
   crearTecnico,
+  datosDeFoto,
   eliminarSala,
+  eventosDeEquipo,
+  guardarFoto,
+  incidenciasPendientes,
+  intentosRecientes,
   listarCandidatosABaja,
+  listarEnObservacion,
   listarSalas,
+  listarUsuarios,
   obtenerEquipo,
   paginarEquipos,
   paginarIncidencias,
   renombrarSala,
   renombrarTecnico,
+  registrarIntento,
   reportarIncidencia,
+  resumenCierres,
   serieActividad,
   trasladarEquipo,
 } from '@/lib/dataService';
@@ -224,6 +235,86 @@ async function main() {
   });
   await paso('Dos incidencias no generan alerta', async () =>
     !(await listarCandidatosABaja()).some((c) => c.codigo === 'PV-MEJ-02'),
+  );
+
+  // Mejoras de toda la página: filtro por sala, resumen de cierres, pendientes y observación.
+  await paso('Filtrar incidencias por sala (la sala actual del equipo)', async () => {
+    const enSala = await paginarIncidencias({ salaId: sala.id }, 1, 100);
+    const porCodigo = await paginarIncidencias({ busqueda: 'PV-MEJ-' }, 1, 100);
+    const enOtra = await paginarIncidencias({ salaId: otra.id }, 1, 100);
+    return enSala.total > 0 && enSala.total === porCodigo.total && enOtra.total === 0;
+  });
+  await paso('Conteo y resumen respetan el filtro de sala', async () => {
+    const conteo = await contarIncidenciasPorEstado({ salaId: otra.id });
+    const resumen = await resumenCierres({ salaId: otra.id });
+    return (
+      conteo.abierta + conteo.en_revision + conteo.cerrada === 0 &&
+      resumen.cerradas === 0 &&
+      resumen.promedioDias === null &&
+      resumen.pendienteMasAntigua === null
+    );
+  });
+  await paso('Resumen de cierres: cerradas hoy, promedio 0 días y pendiente más antigua', async () => {
+    const resumen = await resumenCierres({ salaId: sala.id });
+    return resumen.cerradas >= 1 && resumen.promedioDias === 0 && resumen.pendienteMasAntigua === hoyBogota();
+  });
+  await paso('Pendientes del panel: sin cerradas, de la más antigua a la más reciente', async () => {
+    const { filas, total } = await incidenciasPendientes(500);
+    const ordenadas = filas.every((f, i) => i === 0 || filas[i - 1]!.fecha <= f.fecha);
+    return (
+      filas.length > 0 &&
+      total >= filas.length &&
+      ordenadas &&
+      filas.every((f) => f.estado !== 'cerrada' && !('totalFilas' in f)) &&
+      filas.some((f) => f.equipoCodigo.startsWith('PV-MEJ-'))
+    );
+  });
+  await paso('En observación: el equipo con 2 fallas, no el de 3 ni el de 1', async () => {
+    const codigos = (await listarEnObservacion()).map((e) => e.codigo);
+    return codigos.includes('PV-MEJ-02') && !codigos.includes('PV-MEJ-03') && !codigos.includes('PV-MEJ-01');
+  });
+
+  // Cuentas de reporte, registro de cambios, fotos e intentos de acceso (M3 a M6).
+  const [cuenta] = await listarUsuarios();
+  const propia = (await reportarIncidencia('PV-MEJ-01', 'Reporte de una cuenta', { reportadoPor: cuenta!.id })).incidencia;
+  await paso('El reporte guarda quién reportó y "Mis reportes" filtra por cuenta', async () => {
+    const { filas } = await paginarIncidencias({ reportadoPor: cuenta!.id, busqueda: 'PV-MEJ-' }, 1, 50);
+    return propia.reportadoPor === cuenta!.email && filas.length === 1 && filas[0]?.numeroCaso === propia.numeroCaso;
+  });
+  await paso('Registro de cambios: reporte, cambio automático de estado y cierre, del más reciente al más antiguo', async () => {
+    const acciones = (await eventosDeEquipo('PV-MEJ-01')).map((e) => e.accion);
+    return (
+      acciones[0] === 'estado_equipo' &&
+      acciones[1] === 'incidencia_reportada' &&
+      acciones.includes('incidencia_cerrada') &&
+      acciones.includes('equipo_registrado')
+    );
+  });
+  await paso('Un cambio de estado queda anotado con antes → después; repetir el mismo estado no anota nada', async () => {
+    await cambiarEstadoEquipo('PV-MEJ-01', 'funcional');
+    const antes = (await eventosDeEquipo('PV-MEJ-01')).length;
+    await cambiarEstadoEquipo('PV-MEJ-01', 'funcional');
+    const [ultimo] = await eventosDeEquipo('PV-MEJ-01');
+    return (await eventosDeEquipo('PV-MEJ-01')).length === antes && ultimo?.detalle === 'En reparación → Funcional' && ultimo.actor === 'sistema';
+  });
+  await paso('Foto: se guarda su ruta y la fila lo indica', async () => {
+    await guardarFoto(propia.numeroCaso, 'PRUEBA/no-existe.jpg');
+    const datos = await datosDeFoto(propia.numeroCaso);
+    const { filas } = await paginarIncidencias({ equipoCodigo: 'PV-MEJ-01' }, 1, 50);
+    return datos.foto === 'PRUEBA/no-existe.jpg' && filas.find((f) => f.numeroCaso === propia.numeroCaso)?.tieneFoto === true;
+  });
+  await paso('Foto de un caso inexistente → INCIDENCIA_NO_ENCONTRADA', () =>
+    falla(() => datosDeFoto('INC-NO-EXISTE'), 'INCIDENCIA_NO_ENCONTRADA'),
+  );
+  await paso('Intentos de acceso: se guardan y se leen del más reciente al más antiguo', async () => {
+    await registrarIntento('prueba-intentos@example.com', false);
+    await registrarIntento('PRUEBA-intentos@example.com', true);
+    const { intentos } = await intentosRecientes('prueba-intentos@example.com');
+    return intentos.length === 2 && intentos[0]?.exito === true && intentos[1]?.exito === false;
+  });
+  await paso('Rol: nadie cambia el suyo', () => falla(() => cambiarRol(cuenta!.id, 'viewer', cuenta!.id), 'SIN_PERMISO'));
+  await paso('Rol: cuenta inexistente → USUARIO_NO_ENCONTRADO', () =>
+    falla(() => cambiarRol(randomUUID(), 'viewer', randomUUID()), 'USUARIO_NO_ENCONTRADO'),
   );
 }
 

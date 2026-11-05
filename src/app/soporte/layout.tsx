@@ -8,6 +8,7 @@ import { ProveedorAvisos } from '@/components/ui/Avisos';
 import { BarraProgreso } from '@/components/ui/BarraProgreso';
 import { TransicionPagina } from '@/components/ui/TransicionPagina';
 import { COOKIE_ALERTAS_VISTAS, leerVistos } from '@/lib/alertasVistas';
+import { esSoporte } from '@/lib/auth/permisos';
 import { obtenerSesion } from '@/lib/auth/sesion';
 import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 import { formatearFecha } from '@/lib/formato';
@@ -31,7 +32,7 @@ async function codigosCandidatos(): Promise<string[]> {
   }
 }
 
-function PiePagina() {
+function PiePagina({ soporte }: { soporte: boolean }) {
   return (
     <footer className="mt-16 border-t border-borde print:hidden">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-texto-suave">
@@ -44,9 +45,11 @@ function PiePagina() {
           <Link href="/soporte/ayuda" className="text-primario underline-offset-4 hover:underline">
             Ayuda y reglas
           </Link>
-          <span>
-            Atajo de búsqueda: <kbd className="rounded border border-borde px-1">Ctrl K</kbd>
-          </span>
+          {soporte ? (
+            <span>
+              Atajo de búsqueda: <kbd className="rounded border border-borde px-1">Ctrl K</kbd>
+            </span>
+          ) : null}
         </p>
       </div>
     </footer>
@@ -56,7 +59,9 @@ function PiePagina() {
 export default async function LayoutSoporte({ children }: { children: React.ReactNode }) {
   const sesion = await obtenerSesion();
   if (!sesion) redirect('/login');
-  const [candidatos, almacen] = await Promise.all([codigosCandidatos(), cookies()]);
+  const soporte = esSoporte(sesion.rol);
+  // Las alertas son de soporte: una cuenta de reporte no las consulta.
+  const [candidatos, almacen] = await Promise.all([soporte ? codigosCandidatos() : Promise.resolve([]), cookies()]);
   // Las alertas ya vistas se leen aquí para que el número salga bien desde el primer dibujo.
   const vistos = [...leerVistos(almacen.get(COOKIE_ALERTAS_VISTAS)?.value)];
   return (
@@ -72,7 +77,7 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
         <Suspense fallback={null}>
           <BarraProgreso />
         </Suspense>
-        <NavegacionSoporte email={sesion.email} candidatos={candidatos} vistos={vistos} />
+        <NavegacionSoporte email={sesion.email} rol={sesion.rol} candidatos={candidatos} vistos={vistos} />
         <main
           id="contenido"
           tabIndex={-1}
@@ -80,7 +85,7 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
         >
           <TransicionPagina>{children}</TransicionPagina>
         </main>
-        <PiePagina />
+        <PiePagina soporte={soporte} />
       </div>
     </ProveedorAvisos>
   );

@@ -17,17 +17,27 @@ export type { ResultadosBusqueda } from '@/lib/datos/busqueda';
 export {
 	cerrarIncidencia,
 	contarIncidenciasPorEstado,
+	datosDeFoto,
+	guardarFoto,
 	historialDeEquipo,
+	incidenciasPendientes,
 	listarIncidencias,
 	paginarIncidencias,
 	reportarIncidencia,
+	resumenCierres,
 } from '@/lib/datos/incidencias';
-export type { FiltrosIncidencias } from '@/lib/datos/incidencias';
+export type { DatosFoto, FiltrosIncidencias, ResumenCierres } from '@/lib/datos/incidencias';
+export { actoresDeEventos, eventosDeEquipo, eventosRecientes } from '@/lib/datos/eventos';
+export type { AccionEvento, FiltrosEventos, FilaEvento } from '@/lib/datos/eventos';
+export { intentosRecientes, registrarIntento } from '@/lib/datos/accesos';
+export { cambiarRol, listarUsuarios, rolActual } from '@/lib/datos/usuarios';
+export type { FilaUsuario } from '@/lib/datos/usuarios';
 export {
 	asignarTecnico,
 	cambiarActividadTecnico,
 	crearTecnico,
 	listarCandidatosABaja,
+	listarEnObservacion,
 	listarTecnicos,
 	reasignarIncidenciasVencidas,
 	renombrarTecnico,

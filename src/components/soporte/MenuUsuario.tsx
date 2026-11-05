@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icono } from '@/components/ui/Icono';
+import { esSoporte, nombreRol, type Rol } from '@/lib/auth/permisos';
 
 const CLASES_OPCION =
   'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-texto transition hover:bg-primario-suave';
 
-export function MenuUsuario({ email }: { email: string }) {
+export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
   const router = useRouter();
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
@@ -63,11 +64,22 @@ export function MenuUsuario({ email }: { email: string }) {
           <div className="border-b border-borde px-3 pb-2 pt-1">
             <p className="text-[0.65rem] uppercase tracking-[0.2em] text-texto-suave">Sesión iniciada</p>
             <p className="truncate text-sm text-texto" title={email}>{email}</p>
+            <p className="mt-1 text-xs text-primario">{nombreRol(rol)}</p>
           </div>
           <div className="grid gap-0.5 pt-2">
             <Link role="menuitem" href="/soporte/cuenta" className={CLASES_OPCION}>
-              <Icono nombre="llave" className="size-4 text-texto-suave" /> Cambiar contraseña
+              <Icono nombre="llave" className="size-4 text-texto-suave" /> Mi cuenta
             </Link>
+            {esSoporte(rol) ? (
+              <Link role="menuitem" href="/soporte/actividad" className={CLASES_OPCION}>
+                <Icono nombre="reloj" className="size-4 text-texto-suave" /> Registro de cambios
+              </Link>
+            ) : null}
+            {rol === 'admin' ? (
+              <Link role="menuitem" href="/soporte/usuarios" className={CLASES_OPCION}>
+                <Icono nombre="usuario" className="size-4 text-texto-suave" /> Cuentas y roles
+              </Link>
+            ) : null}
             <Link role="menuitem" href="/soporte/ayuda" className={CLASES_OPCION}>
               <Icono nombre="ayuda" className="size-4 text-texto-suave" /> Ayuda y reglas
             </Link>

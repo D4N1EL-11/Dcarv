@@ -6,11 +6,12 @@ import {
   ZONA_HORARIA,
 } from '@/lib/config/soporte';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
-import { esCandidatoABaja } from '@/lib/reglas/alertas';
+import { esCandidatoABaja, estaEnObservacion } from '@/lib/reglas/alertas';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { diasEntre, hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
 import { puedeAsignarse, type EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { elegirConMenosCarga, validarNombreTecnico } from '@/lib/reglas/tecnico';
+import { registrarEvento } from './eventos';
 import type { FilaCandidato, FilaTecnico, ResultadoActividad } from './tipos';
 
 export function listarTecnicos(): Promise<FilaTecnico[]> {
@@ -27,43 +28,56 @@ export function listarTecnicos(): Promise<FilaTecnico[]> {
 
 export async function crearTecnico(nombre: string): Promise<{ id: string }> {
   validarNombreTecnico(nombre);
-  const [tecnico] = await consultar<{ id: string }>(
-    'INSERT INTO tecnicos (nombre) VALUES ($1) RETURNING id',
-    [nombre.trim()],
-  );
-  return tecnico!;
+  return conTransaccion(async (tx) => {
+    const { rows } = await tx.query<{ id: string }>('INSERT INTO tecnicos (nombre) VALUES ($1) RETURNING id', [
+      nombre.trim(),
+    ]);
+    await registrarEvento(tx, { accion: 'tecnico_registrado', detalle: nombre.trim() });
+    return rows[0]!;
+  });
 }
 
 // El índice único ux_tecnicos_nombre (sin distinguir mayúsculas) responde TECNICO_DUPLICADO.
 export async function renombrarTecnico(id: string, nombre: string): Promise<void> {
   validarNombreTecnico(nombre);
-  const filas = await consultar('UPDATE tecnicos SET nombre = $1 WHERE id = $2 RETURNING id', [
-    nombre.trim(),
-    id,
-  ]);
-  if (!filas.length) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
+  await conTransaccion(async (tx) => {
+    const anterior = await tx.query<{ nombre: string }>('SELECT nombre FROM tecnicos WHERE id = $1 FOR UPDATE', [id]);
+    if (!anterior.rows[0]) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
+    await tx.query('UPDATE tecnicos SET nombre = $1 WHERE id = $2', [nombre.trim(), id]);
+    await registrarEvento(tx, { accion: 'tecnico_renombrado', detalle: `${anterior.rows[0].nombre} → ${nombre.trim()}` });
+  });
 }
 
 export async function asignarTecnico(numeroCaso: string, tecnicoId: string): Promise<void> {
   await conTransaccion(async (tx) => {
-    const incidencia = await tx.query<{ estado: EstadoIncidencia }>(
-      'SELECT estado FROM incidencias WHERE numero_caso = $1 FOR UPDATE',
+    const incidencia = await tx.query<{ estado: EstadoIncidencia; equipo_codigo: string }>(
+      `SELECT i.estado, e.codigo AS equipo_codigo
+         FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+        WHERE i.numero_caso = $1 FOR UPDATE OF i`,
       [numeroCaso],
     );
     const fila = incidencia.rows[0];
     if (!fila) throw new ErrorDeNegocio('INCIDENCIA_NO_ENCONTRADA');
     if (!puedeAsignarse(fila.estado)) throw new ErrorDeNegocio('INCIDENCIA_NO_ASIGNABLE'); // RN-11
 
-    const tecnico = await tx.query('SELECT 1 FROM tecnicos WHERE id = $1 AND activo', [tecnicoId]);
-    if (!tecnico.rowCount) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
+    const tecnico = await tx.query<{ nombre: string }>('SELECT nombre FROM tecnicos WHERE id = $1 AND activo', [tecnicoId]);
+    if (!tecnico.rows[0]) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
 
     await tx.query(
       `UPDATE incidencias SET estado = 'en_revision', tecnico_id = $1, fecha_estado = NOW()
         WHERE numero_caso = $2`,
       [tecnicoId, numeroCaso],
     );
+    await registrarEvento(tx, {
+      accion: 'incidencia_asignada',
+      numeroCaso,
+      equipoCodigo: fila.equipo_codigo,
+      detalle: `a ${tecnico.rows[0].nombre}`,
+    });
   });
 }
+
+type CasoEnRevision = { id: string; tecnico_id: string | null; numero_caso: string; equipo_codigo: string };
 
 // Casos en revisión por técnico activo, en orden de nombre (desempate de elegirConMenosCarga).
 async function cargaDeActivos(tx: PoolClient): Promise<Map<string, number>> {
@@ -81,8 +95,9 @@ async function cargaDeActivos(tx: PoolClient): Promise<Map<string, number>> {
 // Pasa cada caso al técnico con menos carga (distinto del actual) y reinicia su fecha de estado.
 async function repartir(
   tx: PoolClient,
-  casos: { id: string; tecnico_id: string | null }[],
+  casos: CasoEnRevision[],
   carga: Map<string, number>,
+  motivo: string,
 ): Promise<number> {
   let reasignadas = 0;
   for (const caso of casos) {
@@ -92,6 +107,13 @@ async function repartir(
       elegido,
       caso.id,
     ]);
+    const { rows } = await tx.query<{ nombre: string }>('SELECT nombre FROM tecnicos WHERE id = $1', [elegido]);
+    await registrarEvento(tx, {
+      accion: 'incidencia_reasignada',
+      numeroCaso: caso.numero_caso,
+      equipoCodigo: caso.equipo_codigo,
+      detalle: `a ${rows[0]?.nombre ?? 'otro técnico'} (${motivo})`,
+    });
     carga.set(elegido, (carga.get(elegido) ?? 0) + 1);
     if (caso.tecnico_id && carga.has(caso.tecnico_id)) {
       carga.set(caso.tecnico_id, carga.get(caso.tecnico_id)! - 1);
@@ -104,19 +126,18 @@ async function repartir(
 // RN-10: cada caso vencido pasa al técnico activo con menos casos en revisión, distinto del actual.
 export async function reasignarIncidenciasVencidas(): Promise<{ reasignadas: number }> {
   return conTransaccion(async (tx) => {
-    const { rows: enRevision } = await tx.query<{
-      id: string;
-      tecnico_id: string | null;
-      dia_estado: string;
-    }>(
-      `SELECT id, tecnico_id, (fecha_estado AT TIME ZONE $1)::date AS dia_estado
-         FROM incidencias WHERE estado = 'en_revision' FOR UPDATE`,
+    const { rows: enRevision } = await tx.query<CasoEnRevision & { dia_estado: string }>(
+      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo,
+              (i.fecha_estado AT TIME ZONE $1)::date AS dia_estado
+         FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+        WHERE i.estado = 'en_revision' FOR UPDATE OF i`,
       [ZONA_HORARIA],
     );
     const hoy = hoyBogota();
     const vencidas = enRevision.filter((i) => diasEntre(i.dia_estado, hoy) > DIAS_REASIGNACION);
     if (!vencidas.length) return { reasignadas: 0 };
-    return { reasignadas: await repartir(tx, vencidas, await cargaDeActivos(tx)) };
+    const motivo = `más de ${DIAS_REASIGNACION} días sin cambios`;
+    return { reasignadas: await repartir(tx, vencidas, await cargaDeActivos(tx), motivo) };
   });
 }
 
@@ -128,20 +149,28 @@ export async function cambiarActividadTecnico(
   activo: boolean,
 ): Promise<ResultadoActividad> {
   return conTransaccion(async (tx) => {
-    const tecnico = await tx.query('SELECT 1 FROM tecnicos WHERE id = $1 FOR UPDATE', [id]);
-    if (!tecnico.rowCount) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
+    const tecnico = await tx.query<{ nombre: string; activo: boolean }>(
+      'SELECT nombre, activo FROM tecnicos WHERE id = $1 FOR UPDATE',
+      [id],
+    );
+    const actual = tecnico.rows[0];
+    if (!actual) throw new ErrorDeNegocio('TECNICO_NO_ENCONTRADO');
     await tx.query('UPDATE tecnicos SET activo = $1 WHERE id = $2', [activo, id]);
+    if (actual.activo !== activo) {
+      await registrarEvento(tx, { accion: activo ? 'tecnico_activado' : 'tecnico_desactivado', detalle: actual.nombre });
+    }
     if (activo) return { activo, reasignadas: 0, sinReasignar: 0 };
 
-    const { rows: casos } = await tx.query<{ id: string; tecnico_id: string | null }>(
-      `SELECT id, tecnico_id FROM incidencias
-        WHERE tecnico_id = $1 AND estado = 'en_revision'
-        ORDER BY created_at
-        FOR UPDATE`,
+    const { rows: casos } = await tx.query<CasoEnRevision>(
+      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo
+         FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+        WHERE i.tecnico_id = $1 AND i.estado = 'en_revision'
+        ORDER BY i.created_at
+        FOR UPDATE OF i`,
       [id],
     );
     if (!casos.length) return { activo, reasignadas: 0, sinReasignar: 0 };
-    const reasignadas = await repartir(tx, casos, await cargaDeActivos(tx));
+    const reasignadas = await repartir(tx, casos, await cargaDeActivos(tx), `${actual.nombre} quedó inactivo`);
     return { activo, reasignadas, sinReasignar: casos.length - reasignadas };
   });
 }
@@ -149,7 +178,17 @@ export async function cambiarActividadTecnico(
 // RN-09: la ventana empieza en una fecha calculada con hoyBogota() y se cuenta en la base con
 // GROUP BY/HAVING; antes se traían todas las incidencias de la historia para contarlas aquí.
 export async function listarCandidatosABaja(): Promise<FilaCandidato[]> {
-  const filas = await consultar<FilaCandidato>(
+  // La regla sigue en un solo lugar (lib/reglas/alertas.ts); HAVING solo evita traer filas de más.
+  return (await equiposConFallasRecientes(INCIDENCIAS_PARA_ALERTA)).filter((f) => esCandidatoABaja(f.incidencias30d));
+}
+
+// Aviso temprano: equipos a una sola falla de ser candidatos (estaEnObservacion).
+export async function listarEnObservacion(): Promise<FilaCandidato[]> {
+  return (await equiposConFallasRecientes(INCIDENCIAS_PARA_ALERTA - 1)).filter((f) => estaEnObservacion(f.incidencias30d));
+}
+
+async function equiposConFallasRecientes(minimo: number): Promise<FilaCandidato[]> {
+  return consultar<FilaCandidato>(
     `SELECT e.codigo, s.nombre AS sala, e.estado,
             COUNT(*) AS "incidencias30d",
             MAX(i.fecha) AS "ultimaFecha",
@@ -162,8 +201,6 @@ export async function listarCandidatosABaja(): Promise<FilaCandidato[]> {
       GROUP BY e.id, e.codigo, s.nombre, e.estado
      HAVING COUNT(*) >= $2
       ORDER BY COUNT(*) DESC, e.codigo`,
-    [inicioVentana(hoyBogota(), DIAS_VENTANA_ALERTA), INCIDENCIAS_PARA_ALERTA],
+    [inicioVentana(hoyBogota(), DIAS_VENTANA_ALERTA), minimo],
   );
-  // La regla sigue en un solo lugar (lib/reglas/alertas.ts); HAVING solo evita traer filas de más.
-  return filas.filter((f) => esCandidatoABaja(f.incidencias30d));
 }

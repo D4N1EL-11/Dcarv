@@ -1,12 +1,54 @@
 import Link from 'next/link';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
+import { Icono } from '@/components/ui/Icono';
 import { Tarjeta } from '@/components/ui/Tarjeta';
-import { DIAS_VENTANA_ALERTA } from '@/lib/config/soporte';
+import { DIAS_VENTANA_ALERTA, INCIDENCIAS_PARA_ALERTA } from '@/lib/config/soporte';
 import type { FilaCandidato } from '@/lib/dataService';
 import { formatearFecha, plural, textoAntiguedad } from '@/lib/formato';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { InsigniaEstadoEquipo } from './InsigniaEstadoEquipo';
 import { SelectorEstadoEquipo } from './SelectorEstadoEquipo';
+
+// Aviso temprano: equipos a una falla del umbral. Solo informa; no cambia el estado de nada.
+export function PanelObservacion({ equipos }: { equipos: FilaCandidato[] }) {
+  if (!equipos.length) {
+    return (
+      <p className="flex items-center gap-3 rounded-xl border border-dashed border-borde px-5 py-4 text-sm text-texto-suave">
+        <Icono nombre="check" className="size-4 text-funcional" />
+        Ningún equipo está cerca del umbral de alerta.
+      </p>
+    );
+  }
+  const hoy = hoyBogota();
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {equipos.map((equipo) => (
+        <li key={equipo.codigo}>
+          <Tarjeta className="grid h-full gap-2 border-l-4 border-l-reparacion">
+            <div className="flex items-start justify-between gap-2">
+              <Link
+                href={`/soporte/equipos/${encodeURIComponent(equipo.codigo)}`}
+                className="font-semibold break-all text-primario underline-offset-4 hover:underline"
+              >
+                {equipo.codigo}
+              </Link>
+              <InsigniaEstadoEquipo estado={equipo.estado} />
+            </div>
+            <p className="text-sm text-texto-suave">Sala: {equipo.sala}</p>
+            <p className="text-sm">
+              <span className="font-semibold text-reparacion">{equipo.incidencias30d}</span> de{' '}
+              {INCIDENCIAS_PARA_ALERTA} fallas en {DIAS_VENTANA_ALERTA} días
+            </p>
+            <p className="text-xs text-texto-suave">
+              Último reporte {textoAntiguedad(diasEntre(equipo.ultimaFecha, hoy))}
+              {equipo.pendientes ? ` · ${plural(equipo.pendientes, 'pendiente', 'pendientes')}` : ''}
+            </p>
+          </Tarjeta>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 // Cada candidato se puede revisar (historial e incidencias) o dar de baja aquí mismo, con confirmación.
 export function PanelAlertas({ candidatos }: { candidatos: FilaCandidato[] }) {

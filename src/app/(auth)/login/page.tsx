@@ -3,10 +3,20 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
-import { DESTINO_POR_DEFECTO, rutaSegura } from '@/lib/auth/redireccion';
+import { esRolValido, inicioPara } from '@/lib/auth/permisos';
+import { rutaSegura } from '@/lib/auth/redireccion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+// Tras varios fallos seguidos el servidor hace esperar (lib/reglas/acceso.ts): se avisa antes.
+function mensajeCredenciales(restantes: number | null | undefined, minutos = 15): string {
+	const base = 'Correo o contraseña incorrectos.';
+	if (typeof restantes !== 'number' || restantes > 2) return base;
+	if (restantes === 0) return `${base} Por seguridad, espera ${minutos} minutos antes de intentarlo de nuevo.`;
+	return `${base} ${restantes === 1 ? 'Te queda 1 intento' : `Te quedan ${restantes} intentos`} antes de una espera de ${minutos} minutos.`;
+}
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -17,13 +27,14 @@ export default function LoginPage() {
 	const [authError, setAuthError] = useState('');
 	const [restablecimientoAviso, setRestablecimientoAviso] = useState(false);
 	const [sesionExpirada, setSesionExpirada] = useState(false);
-	const [destino, setDestino] = useState(DESTINO_POR_DEFECTO);
+	// Ruta pedida antes de iniciar sesión (?siguiente=); sin ella, el inicio de cada rol.
+	const [siguiente, setSiguiente] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	useEffect(() => {
 		const parametros = new URLSearchParams(window.location.search);
 		setRestablecimientoAviso(parametros.get('restablecida') === '1');
 		setSesionExpirada(parametros.get('expirada') === '1');
-		setDestino(rutaSegura(parametros.get('siguiente')));
+		setSiguiente(parametros.get('siguiente'));
 	}, []);
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
@@ -50,12 +61,22 @@ export default function LoginPage() {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email: normalizedEmail, password }),
 			});
-			const result = (await response.json()) as { error?: string };
+			const result = (await response.json()) as {
+				error?: string;
+				data?: { role?: string };
+				intentosRestantes?: number | null;
+				minutosBloqueo?: number;
+			};
 			if (!response.ok) {
-				setAuthError(response.status === 401 ? 'Correo o contraseña incorrectos' : result.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.');
+				setAuthError(
+					response.status === 401
+						? mensajeCredenciales(result.intentosRestantes, result.minutosBloqueo)
+						: result.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.',
+				);
 				return;
 			}
-			router.replace(destino);
+			const rol = esRolValido(result.data?.role) ? result.data.role : 'viewer';
+			router.replace(siguiente ? rutaSegura(siguiente) : inicioPara(rol));
 			router.refresh();
 		} finally {
 			setIsSubmitting(false);
@@ -70,7 +91,10 @@ export default function LoginPage() {
 			pie={
 				<>
 					¿Aún no tienes cuenta?{' '}
-					<Link href="/register" className={CLASES_ENLACE_DORADO}>
+					<Link
+						href={siguiente ? `/register?siguiente=${encodeURIComponent(siguiente)}` : '/register'}
+						className={CLASES_ENLACE_DORADO}
+					>
 						Crear cuenta
 					</Link>
 				</>
@@ -95,6 +119,7 @@ export default function LoginPage() {
 					autoComplete="email"
 					placeholder="nombre@dcarv.com"
 					className="w-full min-w-0"
+					autoFocus
 					value={email}
 					error={emailError}
 					onChange={(event) => {
@@ -104,13 +129,11 @@ export default function LoginPage() {
 					}}
 				/>
 				<div className="grid gap-2">
-					<Input
+					<CampoContrasena
 						id="password"
 						label="Contraseña"
-						type="password"
 						autoComplete="current-password"
 						placeholder="Tu contraseña"
-						className="w-full min-w-0"
 						value={password}
 						error={passwordError}
 						onChange={(event) => {
@@ -130,13 +153,13 @@ export default function LoginPage() {
 				</div>
 
 				{authError ? (
-					<p className="-mt-1 text-sm text-baja" role="alert">
+					<p className="-mt-1 rounded-lg border border-baja/30 bg-baja/10 px-3.5 py-2.5 text-sm text-baja" role="alert">
 						{authError}
 					</p>
 				) : null}
 
-				<Button type="submit" size="lg" className="mt-1 w-full" disabled={isSubmitting}>
-					{isSubmitting ? 'Entrando...' : 'Entrar'}
+				<Button type="submit" size="lg" className="mt-1 w-full" loading={isSubmitting}>
+					{isSubmitting ? 'Entrando…' : 'Entrar'}
 				</Button>
 			</form>
 		</MarcoAcceso>

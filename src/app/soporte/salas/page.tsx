@@ -6,10 +6,12 @@ import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { listarSalas } from '@/lib/dataService';
 import { plural, porcentaje } from '@/lib/formato';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 export const metadata: Metadata = { title: 'Salas' };
 
 export default async function PaginaSalas() {
+  await soloSoporte();
   const salas = await listarSalas();
   const totalEquipos = salas.reduce((suma, sala) => suma + sala.totalEquipos, 0);
   const funcionales = salas.reduce((suma, sala) => suma + sala.funcionales, 0);

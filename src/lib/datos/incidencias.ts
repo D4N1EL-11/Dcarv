@@ -1,9 +1,9 @@
-import { LIMITE_LISTADO, ZONA_HORARIA } from '@/lib/config/soporte';
+import { DIAS_VENTANA_ALERTA, LIMITE_LISTADO, ZONA_HORARIA } from '@/lib/config/soporte';
 import { conTransaccion, consultar, crearParametros } from '@/lib/db/conexion';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
-import { normalizarCodigo } from '@/lib/reglas/equipo';
+import { ETIQUETA_EQUIPO, normalizarCodigo } from '@/lib/reglas/equipo';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
-import { hoyBogota } from '@/lib/reglas/fechas';
+import { hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
 import {
   puedeReactivarseAlCerrar,
   validarDescripcion,
@@ -11,6 +11,7 @@ import {
 } from '@/lib/reglas/incidencia';
 import { desplazamiento } from '@/lib/reglas/paginacion';
 import { obtenerEquipoPorCodigo } from './equipos';
+import { registrarEvento } from './eventos';
 import { aPagina } from './paginar';
 import type {
   ConteoIncidencias,
@@ -25,6 +26,9 @@ export type FiltrosIncidencias = {
   equipoCodigo?: string | undefined;
   busqueda?: string | undefined;
   tecnicoId?: string | undefined;
+  salaId?: string | undefined;
+  // Solo en el servidor ("Mis reportes"): id de la cuenta que reportó.
+  reportadoPor?: string | undefined;
 };
 
 function seleccion(p: (valor: unknown) => string, extra = ''): string {
@@ -33,11 +37,13 @@ function seleccion(p: (valor: unknown) => string, extra = ''): string {
          i.fecha, t.nombre AS tecnico, i.tecnico_id AS "tecnicoId",
          (i.fecha_estado AT TIME ZONE ${p(ZONA_HORARIA)})::date AS "diaEstado",
          e.estado AS "estadoEquipo",
+         u.email AS "reportadoPor", (i.foto IS NOT NULL) AS "tieneFoto",
          (SELECT COUNT(*) FROM incidencias o
            WHERE o.equipo_id = i.equipo_id AND o.id <> i.id AND o.estado <> 'cerrada') AS "otrasPendientes"
     FROM incidencias i
     JOIN equipos e ON e.id = i.equipo_id
-    LEFT JOIN tecnicos t ON t.id = i.tecnico_id`;
+    LEFT JOIN tecnicos t ON t.id = i.tecnico_id
+    LEFT JOIN public.users u ON u.id = i.reportado_por`;
 }
 
 // Empate en created_at dentro de la misma transacción: decide el número de caso.
@@ -53,6 +59,9 @@ function condiciones(f: Omit<FiltrosIncidencias, 'estado'>, p: (valor: unknown) 
   const lista: string[] = [];
   if (f.equipoCodigo) lista.push(`e.codigo = ${p(normalizarCodigo(f.equipoCodigo))}`);
   if (f.tecnicoId) lista.push(`i.tecnico_id = ${p(f.tecnicoId)}`);
+  // Sala actual del equipo: un equipo trasladado lleva su historial a la sala nueva.
+  if (f.salaId) lista.push(`e.sala_id = ${p(f.salaId)}`);
+  if (f.reportadoPor) lista.push(`i.reportado_por = ${p(f.reportadoPor)}`);
   const busqueda = f.busqueda?.trim();
   if (busqueda) {
     const patron = p(escaparComodines(busqueda));
@@ -66,23 +75,34 @@ function condiciones(f: Omit<FiltrosIncidencias, 'estado'>, p: (valor: unknown) 
 export async function reportarIncidencia(
   codigoEquipo: string,
   descripcion: string,
+  opciones: { reportadoPor?: string | undefined } = {},
 ): Promise<ResultadoIncidencia> {
   validarDescripcion(descripcion);
   return conTransaccion(async (tx) => {
     const equipo = await obtenerEquipoPorCodigo(tx, codigoEquipo);
+    const codigo = normalizarCodigo(codigoEquipo);
     const { rows } = await tx.query<{ numero_caso: string }>(
-      `INSERT INTO incidencias (numero_caso, equipo_id, descripcion, estado, fecha)
-       VALUES ('INC-' || LPAD(nextval('seq_numero_caso')::text, 4, '0'), $1, $2, 'abierta', $3)
+      `INSERT INTO incidencias (numero_caso, equipo_id, descripcion, estado, fecha, reportado_por)
+       VALUES ('INC-' || LPAD(nextval('seq_numero_caso')::text, 4, '0'), $1, $2, 'abierta', $3, $4)
        RETURNING numero_caso`,
-      [equipo.id, descripcion.trim(), hoyBogota()],
+      [equipo.id, descripcion.trim(), hoyBogota(), opciones.reportadoPor ?? null],
     );
+    const numeroCaso = rows[0]!.numero_caso;
+    await registrarEvento(tx, { accion: 'incidencia_reportada', numeroCaso, equipoCodigo: codigo, detalle: descripcion.trim() });
     let estadoEquipo = equipo.estado;
-    if (equipo.estado !== 'dado_de_baja') {
-      await tx.query(`UPDATE equipos SET estado = 'en_reparacion' WHERE id = $1`, [equipo.id]); // RN-06
-      estadoEquipo = 'en_reparacion';
+    // RN-06; si ya estaba en reparación no hay cambio que anotar.
+    if (equipo.estado !== 'dado_de_baja' && equipo.estado !== 'en_reparacion') {
+      await tx.query(`UPDATE equipos SET estado = 'en_reparacion' WHERE id = $1`, [equipo.id]);
+      await registrarEvento(tx, {
+        accion: 'estado_equipo',
+        equipoCodigo: codigo,
+        numeroCaso,
+        detalle: `${ETIQUETA_EQUIPO[equipo.estado]} → ${ETIQUETA_EQUIPO.en_reparacion} (automático al reportar)`,
+      });
     }
+    if (equipo.estado !== 'dado_de_baja') estadoEquipo = 'en_reparacion';
     const { valores, p } = crearParametros();
-    const sql = `${seleccion(p)} WHERE i.numero_caso = ${p(rows[0]!.numero_caso)}`;
+    const sql = `${seleccion(p)} WHERE i.numero_caso = ${p(numeroCaso)}`;
     const incidencia = await tx.query<FilaIncidencia>(sql, valores);
     return { incidencia: incidencia.rows[0]!, estadoEquipo };
   });
@@ -128,6 +148,47 @@ export async function listarIncidencias(f: FiltrosIncidencias = {}): Promise<Fil
   return (await paginarIncidencias(f, 1, LIMITE_LISTADO)).filas;
 }
 
+// "Requiere atención" del panel: lo pendiente (abierto o en revisión), de lo más antiguo a lo más
+// reciente, porque lo que más espera es lo primero que hay que atender.
+export async function incidenciasPendientes(limite: number): Promise<{ filas: FilaIncidencia[]; total: number }> {
+  const { valores, p } = crearParametros();
+  const filas = await consultar<FilaIncidencia & { totalFilas: number }>(
+    `${seleccion(p, 'COUNT(*) OVER () AS "totalFilas",')}
+      WHERE i.estado <> 'cerrada'
+      ORDER BY i.fecha ASC, i.created_at ASC
+      LIMIT ${p(limite)}`,
+    valores,
+  );
+  const { filas: limpias, total } = aPagina(filas, 1, limite);
+  return { filas: limpias, total };
+}
+
+export type ResumenCierres = {
+  cerradas: number;
+  promedioDias: number | null;
+  pendienteMasAntigua: string | null;
+};
+
+// Con los mismos filtros del listado (salvo el estado): cierres de la ventana de 30 días (RN-09;
+// el plan no pide estadísticas más largas), el promedio de días entre reporte y cierre (ambos en
+// Bogotá) y la fecha de la incidencia pendiente más antigua.
+export async function resumenCierres(f: Omit<FiltrosIncidencias, 'estado'> = {}): Promise<ResumenCierres> {
+  const { valores, p } = crearParametros();
+  const cierre = `(i.fecha_estado AT TIME ZONE ${p(ZONA_HORARIA)})::date`;
+  const enVentana = `i.estado = 'cerrada' AND ${cierre} >= ${p(inicioVentana(hoyBogota(), DIAS_VENTANA_ALERTA))}::date`;
+  const lista = condiciones(f, p);
+  const donde = lista.length ? `WHERE ${lista.join(' AND ')}` : '';
+  const filas = await consultar<ResumenCierres>(
+    `SELECT COUNT(*) FILTER (WHERE ${enVentana}) AS cerradas,
+            (AVG(${cierre} - i.fecha) FILTER (WHERE ${enVentana}))::float8 AS "promedioDias",
+            MIN(i.fecha) FILTER (WHERE i.estado <> 'cerrada') AS "pendienteMasAntigua"
+       FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+      ${donde}`,
+    valores,
+  );
+  return filas[0] ?? { cerradas: 0, promedioDias: null, pendienteMasAntigua: null };
+}
+
 export async function contarIncidenciasPorEstado(
   f: Omit<FiltrosIncidencias, 'estado'> = {},
 ): Promise<ConteoIncidencias> {
@@ -159,8 +220,9 @@ export async function cerrarIncidencia(
       estado: EstadoIncidencia;
       equipo_id: string;
       estado_equipo: EstadoEquipo;
+      equipo_codigo: string;
     }>(
-      `SELECT i.id, i.estado, i.equipo_id, e.estado AS estado_equipo
+      `SELECT i.id, i.estado, i.equipo_id, e.estado AS estado_equipo, e.codigo AS equipo_codigo
          FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
         WHERE i.numero_caso = $1
         FOR UPDATE OF i, e`,
@@ -174,6 +236,7 @@ export async function cerrarIncidencia(
         `UPDATE incidencias SET estado = 'cerrada', fecha_estado = NOW() WHERE id = $1`,
         [fila.id],
       );
+      await registrarEvento(tx, { accion: 'incidencia_cerrada', numeroCaso, equipoCodigo: fila.equipo_codigo });
     }
 
     if (!opciones.equipoFuncional) return { estadoEquipo: fila.estado_equipo, equipoReactivado: false };
@@ -186,6 +249,40 @@ export async function cerrarIncidencia(
       return { estadoEquipo: fila.estado_equipo, equipoReactivado: false };
     }
     await tx.query(`UPDATE equipos SET estado = 'funcional' WHERE id = $1`, [fila.equipo_id]);
+    await registrarEvento(tx, {
+      accion: 'estado_equipo',
+      equipoCodigo: fila.equipo_codigo,
+      numeroCaso,
+      detalle: `${ETIQUETA_EQUIPO[fila.estado_equipo]} → ${ETIQUETA_EQUIPO.funcional} (al cerrar el caso)`,
+    });
     return { estadoEquipo: 'funcional', equipoReactivado: true };
+  });
+}
+
+// Fotos (lib/almacenamiento.ts guarda el archivo; aquí solo su ruta). reportadoPor es el id de
+// la cuenta que reportó: una cuenta de reporte solo ve y agrega fotos en sus propios casos.
+export type DatosFoto = { equipoCodigo: string; reportadoPor: string | null; foto: string | null };
+
+export async function datosDeFoto(numeroCaso: string): Promise<DatosFoto> {
+  const [fila] = await consultar<DatosFoto>(
+    `SELECT e.codigo AS "equipoCodigo", i.reportado_por AS "reportadoPor", i.foto
+       FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+      WHERE i.numero_caso = $1`,
+    [numeroCaso],
+  );
+  if (!fila) throw new ErrorDeNegocio('INCIDENCIA_NO_ENCONTRADA');
+  return fila;
+}
+
+export async function guardarFoto(numeroCaso: string, ruta: string): Promise<void> {
+  await conTransaccion(async (tx) => {
+    const { rows } = await tx.query<{ equipo_codigo: string }>(
+      `UPDATE incidencias i SET foto = $1 FROM equipos e
+        WHERE e.id = i.equipo_id AND i.numero_caso = $2
+        RETURNING e.codigo AS equipo_codigo`,
+      [ruta, numeroCaso],
+    );
+    if (!rows[0]) throw new ErrorDeNegocio('INCIDENCIA_NO_ENCONTRADA');
+    await registrarEvento(tx, { accion: 'foto_agregada', numeroCaso, equipoCodigo: rows[0].equipo_codigo });
   });
 }

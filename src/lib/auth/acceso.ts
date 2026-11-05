@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createToken } from '@/lib/auth/jwt';
+import type { Rol } from '@/lib/auth/permisos';
 import { buscarUsuarioPorEmail } from '@/lib/dataService';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -9,7 +10,6 @@ import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/sup
 // a los miembros del equipo del proyecto, y Resend, sin un dominio verificado, solo a su dueño.
 // Por eso las cuentas se crean confirmadas y las que quedaron esperando ese correo se activan.
 
-type Rol = 'admin' | 'editor' | 'viewer';
 export type UsuarioSesion = { id: string; email: string; role: Rol };
 export type ResultadoAcceso =
 	| { ok: true; usuario: UsuarioSesion; token: string }
@@ -35,6 +35,12 @@ export async function buscarCuentaPendiente(email: string): Promise<string | nul
 	const { data, error } = await createSupabaseAdminClient().auth.admin.getUserById(usuario.id);
 	if (error || !data.user || data.user.email_confirmed_at) return null;
 	return usuario.id;
+}
+
+/** Rol de la cuenta en public.users (la fila la crea el disparador sync_auth_user). */
+export async function fijarRol(id: string, rol: Rol): Promise<void> {
+	const { error } = await createSupabaseAdminClient().from('users').update({ role: rol }).eq('id', id);
+	if (error) throw new Error('No se pudo asignar el rol de la cuenta.');
 }
 
 /** Marca el correo como confirmado y, si se indica, fija la contraseña. */

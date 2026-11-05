@@ -4,6 +4,6 @@ import { conManejoDeErrores, responderOk } from '@/lib/http/respuestas';
 export const dynamic = 'force-dynamic';
 
 export const GET = conManejoDeErrores(async () => {
-  const { email } = await exigirSesion();
-  return responderOk({ email });
+  const { email, rol } = await exigirSesion();
+  return responderOk({ email, rol });
 });

@@ -71,6 +71,8 @@
 
   ::selection { background: rgb(212 178 106 / 0.3); color: var(--color-texto); }
   input::placeholder, textarea::placeholder { color: rgb(156 153 143 / 0.6); }
+  /* Edge agrega su propio botón de "ver contraseña": se oculta porque CampoContrasena trae el suyo. */
+  input::-ms-reveal, input::-ms-clear { display: none; }
 }
 
 /* Línea dorada fina que se desvanece en los extremos. */

@@ -3,21 +3,26 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FormularioIncidencia } from '@/components/soporte/FormularioIncidencia';
 import { HistorialIncidencias } from '@/components/soporte/HistorialIncidencias';
+import { ListaEventos } from '@/components/soporte/ListaEventos';
 import { InsigniaEstadoEquipo } from '@/components/soporte/InsigniaEstadoEquipo';
 import { MigaDePan } from '@/components/soporte/MigaDePan';
 import { SelectorEstadoEquipo } from '@/components/soporte/SelectorEstadoEquipo';
 import { TrasladarEquipo } from '@/components/soporte/TrasladarEquipo';
 import { Aviso } from '@/components/ui/Aviso';
 import { BotonImprimir } from '@/components/ui/BotonImprimir';
+import { clasesBoton } from '@/components/ui/Boton';
+import { Icono } from '@/components/ui/Icono';
 import { EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { DIAS_VENTANA_ALERTA } from '@/lib/config/soporte';
 import { tecnicosDeLaPeticion } from '@/lib/consultasDePagina';
-import { listarSalas, obtenerEquipo, type DetalleEquipo } from '@/lib/dataService';
+import { eventosDeEquipo, listarSalas, obtenerEquipo, type DetalleEquipo } from '@/lib/dataService';
 import { etiquetaEstadoEquipo, formatearFecha, plural } from '@/lib/formato';
 import { esCandidatoABaja } from '@/lib/reglas/alertas';
+import { normalizarCodigo } from '@/lib/reglas/equipo';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
+import { soloSoporte } from '@/lib/auth/sesion';
 
 type Props = {
   params: Promise<{ codigo: string }>;
@@ -48,12 +53,14 @@ function Dato({ titulo, children }: { titulo: string; children: React.ReactNode 
 }
 
 export default async function DetalleDeEquipo({ params, searchParams }: Props) {
+  await soloSoporte();
   const { codigo } = await params;
   const { caso } = await searchParams;
-  const [{ equipo, historial }, tecnicos, salas] = await Promise.all([
+  const [{ equipo, historial }, tecnicos, salas, eventos] = await Promise.all([
     cargar(codigo),
     tecnicosDeLaPeticion(),
     listarSalas(),
+    eventosDeEquipo(normalizarCodigo(decodeURIComponent(codigo)), 21),
   ]);
 
   const reportada = historial.find((incidencia) => incidencia.numeroCaso === caso);
@@ -80,6 +87,12 @@ export default async function DetalleDeEquipo({ params, searchParams }: Props) {
           salaActualId={equipo.salaId}
           salas={salas.map(({ id, nombre }) => ({ id, nombre }))}
         />
+        <Link
+          href={`/soporte/etiquetas?equipo=${encodeURIComponent(equipo.codigo)}`}
+          className={`${clasesBoton('secundario')} gap-2`}
+        >
+          <Icono nombre="qr" /> Etiqueta QR
+        </Link>
         <BotonImprimir texto="Imprimir ficha" />
       </EncabezadoPagina>
       <p className="hidden text-xs print:block">Impreso el {formatearFecha(hoyBogota())} · Soporte de Salas</p>
@@ -138,6 +151,21 @@ export default async function DetalleDeEquipo({ params, searchParams }: Props) {
           textoVacio="Este equipo no tiene incidencias"
           variante="linea"
         />
+      </section>
+
+      <section aria-labelledby="titulo-registro" className="grid gap-5">
+        <TituloSeccion id="titulo-registro" titulo="Registro de cambios">
+          <span className="text-sm text-texto-suave">Quién hizo qué y cuándo</span>
+        </TituloSeccion>
+        <ListaEventos eventos={eventos.slice(0, 20)} mostrarEnlaces={false} />
+        {eventos.length > 20 ? (
+          <Link
+            href={`/soporte/actividad?equipo=${encodeURIComponent(equipo.codigo)}`}
+            className="w-fit text-sm font-medium text-primario underline-offset-4 hover:underline print:hidden"
+          >
+            Ver todo el registro de este equipo
+          </Link>
+        ) : null}
       </section>
     </>
   );

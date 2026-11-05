@@ -10,6 +10,7 @@ export function FormularioTecnico() {
       etiqueta="Nombre del técnico"
       textoBoton="Registrar técnico"
       maximo={100}
+      ejemplo="Ej.: María Fernanda Ruiz"
       validar={(nombre) => esquemaTecnico.safeParse({ nombre }).error?.issues[0]?.message}
     />
   );

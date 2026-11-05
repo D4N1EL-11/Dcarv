@@ -1,4 +1,4 @@
-import { exigirSesion } from '@/lib/auth/sesion';
+import { exigirSoporte } from '@/lib/auth/sesion';
 import { LIMITE_EXPORTACION } from '@/lib/config/soporte';
 import { paginarIncidencias } from '@/lib/dataService';
 import { etiquetaEstadoIncidencia } from '@/lib/formato';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 // Incidencias en CSV con los mismos filtros del listado (estado, búsqueda, equipo, técnico).
 export const GET = conManejoDeErrores(async (request) => {
-  await exigirSesion();
+  await exigirSoporte();
   const filtros = esquemaFiltrosIncidencias.parse(Object.fromEntries(new URL(request.url).searchParams));
   const { filas } = await paginarIncidencias(filtros, 1, LIMITE_EXPORTACION);
   return responderCsv(

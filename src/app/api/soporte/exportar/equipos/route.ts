@@ -1,4 +1,4 @@
-import { exigirSesion } from '@/lib/auth/sesion';
+import { exigirSoporte } from '@/lib/auth/sesion';
 import { LIMITE_EXPORTACION } from '@/lib/config/soporte';
 import { paginarEquipos } from '@/lib/dataService';
 import { etiquetaEstadoEquipo } from '@/lib/formato';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 // Inventario en CSV con los mismos filtros del panel (sala, estado, búsqueda).
 export const GET = conManejoDeErrores(async (request) => {
-  await exigirSesion();
+  await exigirSoporte();
   const filtros = esquemaFiltrosEquipos.parse(Object.fromEntries(new URL(request.url).searchParams));
   const { filas } = await paginarEquipos(filtros, 1, LIMITE_EXPORTACION);
   return responderCsv(

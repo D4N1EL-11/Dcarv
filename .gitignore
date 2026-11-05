@@ -7,6 +7,8 @@ node_modules/
 data/_backups/*
 !data/_backups/.gitkeep
 coverage/
+test-results/
+playwright-report/
 *.log
 .vercel
 .env*

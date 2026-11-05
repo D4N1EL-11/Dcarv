@@ -4,6 +4,7 @@ import { InsigniaEstadoEquipo } from '@/components/soporte/InsigniaEstadoEquipo'
 import { InsigniaEstadoIncidencia } from '@/components/soporte/InsigniaEstadoIncidencia';
 import { EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
+import { DOMINIOS_SOPORTE } from '@/lib/auth/permisos';
 import {
   DIAS_REASIGNACION,
   DIAS_VENTANA_ALERTA,
@@ -60,6 +61,23 @@ const PREGUNTAS = [
       'Solo los candidatos a baja nuevos. Al abrir Alertas quedan como vistos y el número desaparece; también baja solo cuando un equipo deja de ser candidato (por ejemplo, al darlo de baja). Si aparece un candidato nuevo, vuelve a mostrarse.',
   },
   {
+    pregunta: '¿Qué es "En observación" en Alertas?',
+    respuesta: `Equipos en servicio con ${INCIDENCIAS_PARA_ALERTA - 1} fallas en los últimos ${DIAS_VENTANA_ALERTA} días: una más y pasan a candidatos a baja. Es solo un aviso temprano para revisarlos a tiempo; no cambia ningún estado.`,
+  },
+  {
+    pregunta: '¿En qué orden aparece "Requiere atención" en el Panel?',
+    respuesta: `De la incidencia pendiente más antigua a la más reciente: lo que más espera va primero. En rojo, las que superan los ${DIAS_REASIGNACION} días desde el reporte.`,
+  },
+  {
+    pregunta: '¿Para qué sirven las etiquetas QR?',
+    respuesta:
+      'En Salas, "Etiquetas QR" genera una etiqueta por equipo para imprimir y pegar. Al escanearla con el celular se abre el formulario de reporte con ese equipo ya elegido; si la persona no ha iniciado sesión, entra o crea su cuenta y vuelve ahí.',
+  },
+  {
+    pregunta: '¿Por qué no puedo entrar después de varios intentos?',
+    respuesta: 'Tras 5 contraseñas incorrectas seguidas con el mismo correo hay que esperar 15 minutos. Es un freno contra quien intenta adivinar contraseñas. También puede recuperar la contraseña.',
+  },
+  {
     pregunta: '¿Qué pasa si desactivo a un técnico?',
     respuesta: 'Deja de recibir casos. Sus incidencias en revisión pasan, en el mismo momento, al técnico activo con menos carga.',
   },
@@ -100,6 +118,27 @@ export default function PaginaAyuda() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section aria-labelledby="cuentas" className="grid gap-5">
+        <TituloSeccion id="cuentas" titulo="Tipos de cuenta" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Tarjeta className="grid content-start gap-2">
+            <h3 className="text-lg font-medium">Soporte</h3>
+            <p className="text-sm text-texto-suave">
+              Correos @{DOMINIOS_SOPORTE[0]}. Gestionan todo: salas, equipos, técnicos, estados, asignaciones,
+              cierres, alertas, etiquetas QR y el registro de cambios. Un administrador además cambia los roles en
+              “Cuentas y roles”.
+            </p>
+          </Tarjeta>
+          <Tarjeta className="grid content-start gap-2">
+            <h3 className="text-lg font-medium">Reporte</h3>
+            <p className="text-sm text-texto-suave">
+              Cualquier otro correo. Solo reportan fallas (con foto opcional) y siguen sus propios casos en “Mis
+              reportes”. No cambian estados, no dan de baja ni registran salas, equipos o técnicos.
+            </p>
+          </Tarjeta>
+        </div>
       </section>
 
       <section aria-labelledby="estados" className="grid gap-5">
