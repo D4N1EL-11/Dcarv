@@ -8,6 +8,12 @@ import globals from 'globals';
 export default [
 	{ ignores: ['.next/**', 'node_modules/**', 'coverage/**'] },
 	js.configs.recommended,
+	// Scripts y configuración en JavaScript (scripts/*.mjs, *.config.mjs) corren en Node:
+	// sin estas variables globales, `process`, `console` y `URL` fallaban con no-undef en el CI.
+	{
+		files: ['**/*.{js,mjs,cjs}'],
+		languageOptions: { globals: { ...globals.node } },
+	},
 	{
 		files: ['**/*.{ts,tsx}'],
 		languageOptions: {
