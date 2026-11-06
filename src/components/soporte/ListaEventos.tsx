@@ -21,6 +21,12 @@ const ICONO: Record<AccionEvento, NombreIcono> = {
   tecnico_activado: 'tecnicos',
   tecnico_desactivado: 'tecnicos',
   rol_cambiado: 'usuario',
+  incidencia_clasificada: 'etiqueta',
+  solicitud_soporte: 'escudo',
+  solicitud_aprobada: 'escudo',
+  solicitud_rechazada: 'escudo',
+  mantenimiento_programado: 'mantenimiento',
+  mantenimiento_realizado: 'mantenimiento',
 };
 
 const formatoMomento = new Intl.DateTimeFormat('es-CO', {
@@ -29,10 +35,12 @@ const formatoMomento = new Intl.DateTimeFormat('es-CO', {
   timeZone: 'America/Bogota',
 });
 
+// Un evento de un caso lleva a la ficha del caso; uno de un equipo, a la ficha del equipo.
 function enlaceDe(evento: FilaEvento): string | null {
-  if (!evento.equipoCodigo) return null;
-  const ficha = `/soporte/equipos/${encodeURIComponent(evento.equipoCodigo)}`;
-  return evento.numeroCaso ? `${ficha}#${evento.numeroCaso}` : ficha;
+  if (evento.numeroCaso) return `/soporte/incidencias/${encodeURIComponent(evento.numeroCaso)}`;
+  if (evento.equipoCodigo) return `/soporte/equipos/${encodeURIComponent(evento.equipoCodigo)}`;
+  if (evento.accion.startsWith('mantenimiento_')) return '/soporte/mantenimiento';
+  return null;
 }
 
 // Registro de cambios: quién hizo qué y cuándo. mostrarEnlaces=false en la propia ficha del equipo.

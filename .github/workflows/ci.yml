@@ -9,6 +9,10 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      # Solo para las pruebas de extremo a extremo sobre el build de producción: sin JWT_SECRET
+      # la app no acepta sesiones (src/lib/auth/secreto.ts). No es la clave de Vercel.
+      JWT_SECRET: ci-solo-pruebas-e2e-no-es-la-clave-de-produccion
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

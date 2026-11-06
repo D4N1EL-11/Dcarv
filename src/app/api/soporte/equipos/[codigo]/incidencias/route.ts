@@ -1,4 +1,5 @@
-import { exigirSesion, exigirSoporte } from '@/lib/auth/sesion';
+import { esSoporte } from '@/lib/auth/permisos';
+import { exigirSesionVigente, exigirSoporte } from '@/lib/auth/sesion';
 import { historialDeEquipo, reportarIncidencia } from '@/lib/dataService';
 import { conManejoDeErrores, leerCuerpo, responderOk } from '@/lib/http/respuestas';
 import { esquemaIncidencia } from '@/lib/validacion/esquemas';
@@ -14,10 +15,18 @@ export const GET = conManejoDeErrores(async (_request, { params }: Contexto) => 
   return responderOk(await historialDeEquipo(codigo));
 });
 
-// Reportar es lo único que puede hacer cualquier cuenta: queda anotado quién reportó.
+// Reportar es lo único que puede hacer cualquier cuenta: queda anotado quién reportó. La categoría
+// la elige quien reporta; la prioridad solo la fija soporte (a una cuenta de reporte se le ignora).
 export const POST = conManejoDeErrores(async (request, { params }: Contexto) => {
-  const sesion = await exigirSesion();
+  const sesion = await exigirSesionVigente();
   const { codigo } = await params;
-  const { descripcion } = esquemaIncidencia.parse(await leerCuerpo(request));
-  return responderOk(await reportarIncidencia(codigo, descripcion, { reportadoPor: sesion.id }), 201);
+  const { descripcion, categoria, prioridad } = esquemaIncidencia.parse(await leerCuerpo(request));
+  return responderOk(
+    await reportarIncidencia(codigo, descripcion, {
+      reportadoPor: sesion.id,
+      categoria,
+      prioridad: esSoporte(sesion.rol) ? prioridad : undefined,
+    }),
+    201,
+  );
 });

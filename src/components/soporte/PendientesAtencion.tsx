@@ -5,10 +5,12 @@ import type { FilaIncidencia } from '@/lib/dataService';
 import { plural, textoAntiguedad } from '@/lib/formato';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
+import { InsigniaPrioridad } from './InsigniasClasificacion';
 
 type Props = { incidencias: FilaIncidencia[]; total: number };
 
-// Lista de trabajo del panel: lo pendiente, de lo que más espera a lo más reciente.
+// Lista de trabajo del panel: lo pendiente, primero la prioridad alta y, dentro de cada prioridad,
+// de lo que más espera a lo más reciente.
 export function PendientesAtencion({ incidencias, total }: Props) {
   if (!incidencias.length) {
     return (
@@ -30,12 +32,13 @@ export function PendientesAtencion({ incidencias, total }: Props) {
           return (
             <li key={incidencia.numeroCaso}>
               <Link
-                href={`/soporte/equipos/${encodeURIComponent(incidencia.equipoCodigo)}#${incidencia.numeroCaso}`}
+                href={`/soporte/incidencias/${encodeURIComponent(incidencia.numeroCaso)}`}
                 className="group grid gap-x-4 gap-y-1 py-3 transition first:pt-0 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
               >
                 <span className="flex items-center gap-2">
                   <span className="font-semibold tabular-nums text-texto group-hover:text-primario">{incidencia.numeroCaso}</span>
                   <InsigniaEstadoIncidencia estado={incidencia.estado} />
+                  {incidencia.prioridad === 'alta' ? <InsigniaPrioridad prioridad="alta" /> : null}
                 </span>
                 <span className="min-w-0 truncate text-sm text-texto-suave">
                   <span className="font-medium text-primario">{incidencia.equipoCodigo}</span> · {incidencia.descripcion}

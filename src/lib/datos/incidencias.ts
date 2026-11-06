@@ -1,5 +1,15 @@
-import { DIAS_VENTANA_ALERTA, LIMITE_LISTADO, ZONA_HORARIA } from '@/lib/config/soporte';
+import { actorActual } from '@/lib/auth/contexto';
+import { esSoporte } from '@/lib/auth/permisos';
+import { DIAS_VENTANA_ALERTA, LIMITE_LISTADO, PRIORIDAD_INICIAL, ZONA_HORARIA } from '@/lib/config/soporte';
 import { conTransaccion, consultar, crearParametros } from '@/lib/db/conexion';
+import { avisoCasoCerrado, avisoReporteNuevo } from '@/lib/reglas/avisos';
+import {
+  ETIQUETA_CATEGORIA,
+  ETIQUETA_PRIORIDAD,
+  type CategoriaIncidencia,
+  type PrioridadIncidencia,
+} from '@/lib/reglas/clasificacion';
+import { validarComentario } from '@/lib/reglas/comentario';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
 import { ETIQUETA_EQUIPO, normalizarCodigo } from '@/lib/reglas/equipo';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
@@ -10,11 +20,14 @@ import {
   type EstadoIncidencia,
 } from '@/lib/reglas/incidencia';
 import { desplazamiento } from '@/lib/reglas/paginacion';
+import { avisarA, avisarASoporte } from './avisos';
+import { insertarComentario } from './comentarios';
 import { obtenerEquipoPorCodigo } from './equipos';
 import { registrarEvento } from './eventos';
 import { aPagina } from './paginar';
 import type {
   ConteoIncidencias,
+  FichaCaso,
   FilaIncidencia,
   Pagina,
   ResultadoCierre,
@@ -27,6 +40,8 @@ export type FiltrosIncidencias = {
   busqueda?: string | undefined;
   tecnicoId?: string | undefined;
   salaId?: string | undefined;
+  categoria?: CategoriaIncidencia | undefined;
+  prioridad?: PrioridadIncidencia | undefined;
   // Solo en el servidor ("Mis reportes"): id de la cuenta que reportó.
   reportadoPor?: string | undefined;
 };
@@ -36,8 +51,9 @@ function seleccion(p: (valor: unknown) => string, extra = ''): string {
   SELECT ${extra} i.numero_caso AS "numeroCaso", e.codigo AS "equipoCodigo", i.descripcion, i.estado,
          i.fecha, t.nombre AS tecnico, i.tecnico_id AS "tecnicoId",
          (i.fecha_estado AT TIME ZONE ${p(ZONA_HORARIA)})::date AS "diaEstado",
-         e.estado AS "estadoEquipo",
+         e.estado AS "estadoEquipo", i.categoria, i.prioridad,
          u.email AS "reportadoPor", (i.foto IS NOT NULL) AS "tieneFoto",
+         (SELECT COUNT(*) FROM comentarios c WHERE c.incidencia_id = i.id) AS "comentarios",
          (SELECT COUNT(*) FROM incidencias o
            WHERE o.equipo_id = i.equipo_id AND o.id <> i.id AND o.estado <> 'cerrada') AS "otrasPendientes"
     FROM incidencias i
@@ -48,6 +64,11 @@ function seleccion(p: (valor: unknown) => string, extra = ''): string {
 
 // Empate en created_at dentro de la misma transacción: decide el número de caso.
 const ORDEN_RECIENTE = 'ORDER BY i.created_at DESC, i.numero_caso DESC'; // RN-14
+
+// Lista de trabajo: alta primero; dentro de cada prioridad, lo que más espera
+// (lib/reglas/clasificacion.ts, compararAtencion).
+const ORDEN_ATENCION = `ORDER BY CASE i.prioridad WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END,
+  i.fecha ASC, i.created_at ASC`;
 
 function escaparComodines(texto: string): string {
   return `%${texto.replace(/[\\%_]/g, '\\$&')}%`;
@@ -61,6 +82,8 @@ function condiciones(f: Omit<FiltrosIncidencias, 'estado'>, p: (valor: unknown) 
   if (f.tecnicoId) lista.push(`i.tecnico_id = ${p(f.tecnicoId)}`);
   // Sala actual del equipo: un equipo trasladado lleva su historial a la sala nueva.
   if (f.salaId) lista.push(`e.sala_id = ${p(f.salaId)}`);
+  if (f.categoria) lista.push(`i.categoria = ${p(f.categoria)}`);
+  if (f.prioridad) lista.push(`i.prioridad = ${p(f.prioridad)}`);
   if (f.reportadoPor) lista.push(`i.reportado_por = ${p(f.reportadoPor)}`);
   const busqueda = f.busqueda?.trim();
   if (busqueda) {
@@ -72,20 +95,29 @@ function condiciones(f: Omit<FiltrosIncidencias, 'estado'>, p: (valor: unknown) 
   return lista;
 }
 
+export type OpcionesReporte = {
+  reportadoPor?: string | undefined;
+  categoria?: CategoriaIncidencia | undefined;
+  // Solo soporte decide la prioridad; la ruta la ignora si reporta una cuenta de reporte.
+  prioridad?: PrioridadIncidencia | undefined;
+};
+
 export async function reportarIncidencia(
   codigoEquipo: string,
   descripcion: string,
-  opciones: { reportadoPor?: string | undefined } = {},
+  opciones: OpcionesReporte = {},
 ): Promise<ResultadoIncidencia> {
   validarDescripcion(descripcion);
   return conTransaccion(async (tx) => {
     const equipo = await obtenerEquipoPorCodigo(tx, codigoEquipo);
     const codigo = normalizarCodigo(codigoEquipo);
+    const categoria = opciones.categoria ?? 'otro';
+    const prioridad = opciones.prioridad ?? PRIORIDAD_INICIAL;
     const { rows } = await tx.query<{ numero_caso: string }>(
-      `INSERT INTO incidencias (numero_caso, equipo_id, descripcion, estado, fecha, reportado_por)
-       VALUES ('INC-' || LPAD(nextval('seq_numero_caso')::text, 4, '0'), $1, $2, 'abierta', $3, $4)
+      `INSERT INTO incidencias (numero_caso, equipo_id, descripcion, estado, fecha, reportado_por, categoria, prioridad)
+       VALUES ('INC-' || LPAD(nextval('seq_numero_caso')::text, 4, '0'), $1, $2, 'abierta', $3, $4, $5, $6)
        RETURNING numero_caso`,
-      [equipo.id, descripcion.trim(), hoyBogota(), opciones.reportadoPor ?? null],
+      [equipo.id, descripcion.trim(), hoyBogota(), opciones.reportadoPor ?? null, categoria, prioridad],
     );
     const numeroCaso = rows[0]!.numero_caso;
     await registrarEvento(tx, { accion: 'incidencia_reportada', numeroCaso, equipoCodigo: codigo, detalle: descripcion.trim() });
@@ -101,6 +133,14 @@ export async function reportarIncidencia(
       });
     }
     if (equipo.estado !== 'dado_de_baja') estadoEquipo = 'en_reparacion';
+
+    // Lo que reporta una cuenta de reporte llega a la campana de soporte. Lo que reporta soporte
+    // no: quien lo registra ya lo sabe y el resto lo ve en el panel.
+    const actor = actorActual();
+    if (actor && !esSoporte(actor.rol)) {
+      await avisarASoporte(tx, avisoReporteNuevo(numeroCaso, codigo, descripcion, actor.email));
+    }
+
     const { valores, p } = crearParametros();
     const sql = `${seleccion(p)} WHERE i.numero_caso = ${p(numeroCaso)}`;
     const incidencia = await tx.query<FilaIncidencia>(sql, valores);
@@ -122,6 +162,20 @@ export async function historialDeEquipo(codigo: string): Promise<FilaIncidencia[
   const existe = await consultar('SELECT 1 FROM equipos WHERE codigo = $1', [limpio]);
   if (!existe.length) throw new ErrorDeNegocio('EQUIPO_NO_ENCONTRADO');
   return consultarHistorial(limpio);
+}
+
+// Ficha de un caso (/soporte/incidencias/[numero]): la fila del listado más la sala, quién la
+// reportó (id, para comprobar que una cuenta de reporte solo abra sus casos) y cuándo.
+export async function obtenerIncidencia(numeroCaso: string): Promise<FichaCaso | null> {
+  const { valores, p } = crearParametros();
+  const [fila] = await consultar<FichaCaso>(
+    `${seleccion(p, `s.nombre AS sala, e.sala_id AS "salaId", i.reportado_por AS "reportadoPorId",
+        to_char(i.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "creadaEn",`)}
+     JOIN salas s ON s.id = e.sala_id
+     WHERE i.numero_caso = ${p(numeroCaso.trim().toUpperCase())}`,
+    valores,
+  );
+  return fila ?? null;
 }
 
 export async function paginarIncidencias(
@@ -148,14 +202,15 @@ export async function listarIncidencias(f: FiltrosIncidencias = {}): Promise<Fil
   return (await paginarIncidencias(f, 1, LIMITE_LISTADO)).filas;
 }
 
-// "Requiere atención" del panel: lo pendiente (abierto o en revisión), de lo más antiguo a lo más
-// reciente, porque lo que más espera es lo primero que hay que atender.
+// "Requiere atención" del panel: lo pendiente (abierto o en revisión). Primero la prioridad alta
+// y, dentro de cada prioridad, lo más antiguo, porque lo que más espera es lo primero que hay
+// que atender.
 export async function incidenciasPendientes(limite: number): Promise<{ filas: FilaIncidencia[]; total: number }> {
   const { valores, p } = crearParametros();
   const filas = await consultar<FilaIncidencia & { totalFilas: number }>(
     `${seleccion(p, 'COUNT(*) OVER () AS "totalFilas",')}
       WHERE i.estado <> 'cerrada'
-      ORDER BY i.fecha ASC, i.created_at ASC
+      ${ORDEN_ATENCION}
       LIMIT ${p(limite)}`,
     valores,
   );
@@ -209,11 +264,13 @@ export async function contarIncidenciasPorEstado(
 
 // CU-07 en una sola transacción: la incidencia y su equipo quedan bloqueados mientras se decide.
 // Con `equipoFuncional`, el equipo vuelve a "funcional" solo si estaba en reparación y ya no le
-// quedan incidencias pendientes (puedeReactivarseAlCerrar). Cerrar una cerrada no cambia nada.
+// quedan incidencias pendientes (puedeReactivarseAlCerrar). Con `nota`, la solución aplicada queda
+// como último comentario del caso y llega a quien lo reportó. Cerrar una cerrada no cambia nada.
 export async function cerrarIncidencia(
   numeroCaso: string,
-  opciones: { equipoFuncional?: boolean | undefined } = {},
+  opciones: { equipoFuncional?: boolean | undefined; nota?: string | undefined } = {},
 ): Promise<ResultadoCierre> {
+  const nota = opciones.nota?.trim() ? validarComentario(opciones.nota) : null;
   return conTransaccion(async (tx) => {
     const { rows } = await tx.query<{
       id: string;
@@ -221,8 +278,9 @@ export async function cerrarIncidencia(
       equipo_id: string;
       estado_equipo: EstadoEquipo;
       equipo_codigo: string;
+      reportado_por: string | null;
     }>(
-      `SELECT i.id, i.estado, i.equipo_id, e.estado AS estado_equipo, e.codigo AS equipo_codigo
+      `SELECT i.id, i.estado, i.equipo_id, e.estado AS estado_equipo, e.codigo AS equipo_codigo, i.reportado_por
          FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
         WHERE i.numero_caso = $1
         FOR UPDATE OF i, e`,
@@ -237,6 +295,11 @@ export async function cerrarIncidencia(
         [fila.id],
       );
       await registrarEvento(tx, { accion: 'incidencia_cerrada', numeroCaso, equipoCodigo: fila.equipo_codigo });
+      const actor = actorActual();
+      if (nota && actor) {
+        await insertarComentario(tx, fila.id, { id: actor.id, email: actor.email, soporte: true }, nota, 'cierre');
+      }
+      await avisarA(tx, fila.reportado_por, avisoCasoCerrado(numeroCaso, fila.equipo_codigo, nota));
     }
 
     if (!opciones.equipoFuncional) return { estadoEquipo: fila.estado_equipo, equipoReactivado: false };
@@ -256,6 +319,47 @@ export async function cerrarIncidencia(
       detalle: `${ETIQUETA_EQUIPO[fila.estado_equipo]} → ${ETIQUETA_EQUIPO.funcional} (al cerrar el caso)`,
     });
     return { estadoEquipo: 'funcional', equipoReactivado: true };
+  });
+}
+
+// Cambiar la categoría o la prioridad de un caso (soporte). Se puede aun cerrado: corrige la
+// estadística del informe mensual. Solo anota en el registro lo que de verdad cambió.
+export async function clasificarIncidencia(
+  numeroCaso: string,
+  cambios: { categoria?: CategoriaIncidencia | undefined; prioridad?: PrioridadIncidencia | undefined },
+): Promise<{ categoria: CategoriaIncidencia; prioridad: PrioridadIncidencia }> {
+  return conTransaccion(async (tx) => {
+    const { rows } = await tx.query<{
+      id: string;
+      categoria: CategoriaIncidencia;
+      prioridad: PrioridadIncidencia;
+      equipo_codigo: string;
+    }>(
+      `SELECT i.id, i.categoria, i.prioridad, e.codigo AS equipo_codigo
+         FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
+        WHERE i.numero_caso = $1 FOR UPDATE OF i`,
+      [numeroCaso],
+    );
+    const actual = rows[0];
+    if (!actual) throw new ErrorDeNegocio('INCIDENCIA_NO_ENCONTRADA');
+    const categoria = cambios.categoria ?? actual.categoria;
+    const prioridad = cambios.prioridad ?? actual.prioridad;
+    const partes: string[] = [];
+    if (categoria !== actual.categoria) {
+      partes.push(`categoría ${ETIQUETA_CATEGORIA[actual.categoria]} → ${ETIQUETA_CATEGORIA[categoria]}`);
+    }
+    if (prioridad !== actual.prioridad) {
+      partes.push(`prioridad ${ETIQUETA_PRIORIDAD[actual.prioridad]} → ${ETIQUETA_PRIORIDAD[prioridad]}`);
+    }
+    if (!partes.length) return { categoria, prioridad };
+    await tx.query('UPDATE incidencias SET categoria = $1, prioridad = $2 WHERE id = $3', [categoria, prioridad, actual.id]);
+    await registrarEvento(tx, {
+      accion: 'incidencia_clasificada',
+      numeroCaso,
+      equipoCodigo: actual.equipo_codigo,
+      detalle: partes.join(', '),
+    });
+    return { categoria, prioridad };
   });
 }
 

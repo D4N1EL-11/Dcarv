@@ -27,7 +27,7 @@ function aplanar(r: ResultadosBusqueda): Elemento[] {
       icono: 'incidencias' as const,
       titulo: `${i.numeroCaso} · ${i.equipoCodigo}`,
       detalle: `${etiquetaEstadoIncidencia(i.estado)} · ${i.descripcion}`,
-      href: `/soporte/equipos/${encodeURIComponent(i.equipoCodigo)}#${i.numeroCaso}`,
+      href: `/soporte/incidencias/${encodeURIComponent(i.numeroCaso)}`,
     })),
     ...r.salas.map((s) => ({
       clave: `s-${s.id}`,

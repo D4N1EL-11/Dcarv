@@ -31,7 +31,17 @@ const nextConfig = {
     ];
   },
   async headers() {
-    return [{ source: '/:path*', headers: ENCABEZADOS_SEGURIDAD }];
+    return [
+      { source: '/:path*', headers: ENCABEZADOS_SEGURIDAD },
+      // El service worker siempre se revisa en la red: una versión nueva llega con el siguiente despliegue.
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+        ],
+      },
+    ];
   },
 };
 

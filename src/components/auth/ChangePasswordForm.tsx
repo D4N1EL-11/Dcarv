@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
 
 // El correo sale de la sesión y no se edita: el servidor ya exige que coincida con ella.
@@ -93,9 +93,9 @@ export function ChangePasswordForm({ email }: { email: string }) {
 				<p role="status" className="rounded-lg border border-funcional/30 bg-funcional/10 px-3.5 py-2.5 text-sm text-funcional">{notice}</p>
 			) : null}
 			<div>
-				<Button type="submit" loading={saving}>
+				<Boton type="submit" cargando={saving}>
 					{saving ? 'Actualizando…' : 'Actualizar contraseña'}
-				</Button>
+				</Boton>
 			</div>
 		</form>
 	);

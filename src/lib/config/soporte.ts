@@ -9,3 +9,24 @@ export const MAXIMO_LOTE_EQUIPOS = 50; // registro de varios equipos a la vez
 export const TAMANO_PAGINA_EQUIPOS = 50; // filas por página en el panel
 export const TAMANO_PAGINA_INCIDENCIAS = 25; // tarjetas por página en el listado de incidencias
 export const LIMITE_EXPORTACION = 5000; // filas máximas de un CSV
+
+// Clasificación de incidencias (M10). La categoría la elige quien reporta; la prioridad, soporte.
+export const CATEGORIAS_INCIDENCIA = ['hardware', 'software', 'red', 'perifericos', 'otro'] as const;
+export const PRIORIDADES_INCIDENCIA = ['alta', 'media', 'baja'] as const;
+export const PRIORIDAD_INICIAL = 'media';
+
+// Comentarios de una incidencia (M8).
+export const LARGO_MINIMO_COMENTARIO = 2;
+export const LARGO_MAXIMO_COMENTARIO = 1000;
+
+// Avisos de la campana (M9).
+export const AVISOS_EN_CAMPANA = 8; // los más recientes en el menú desplegable
+export const AVISOS_POR_PAGINA = 30; // en /soporte/avisos
+export const SEGUNDOS_ENTRE_CONSULTAS_AVISOS = 60; // la campana vuelve a preguntar mientras la pestaña está visible
+
+// Mantenimiento preventivo (M11).
+export const FRECUENCIAS_MANTENIMIENTO = [7, 15, 30, 60, 90, 180] as const; // opciones sugeridas (días)
+export const MINIMO_DIAS_MANTENIMIENTO = 7;
+export const MAXIMO_DIAS_MANTENIMIENTO = 365;
+export const DIAS_AVISO_MANTENIMIENTO = 7; // "Próximo": vence dentro de esta cantidad de días
+export const LARGO_MAXIMO_NOTAS_MANTENIMIENTO = 500;

@@ -2,8 +2,10 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 import { SignJWT } from 'jose';
 
 // Barrera de permisos del middleware con sesiones firmadas en la prueba (el mismo secreto que
-// usa el servidor). Las respuestas llegan antes de tocar la base de datos.
-const secreto = new TextEncoder().encode(process.env.JWT_SECRET ?? 'development-only-secret-change-me');
+// usa el servidor: playwright.config.ts carga .env.local; en CI lo pone el flujo de trabajo).
+// Las respuestas llegan antes de tocar la base de datos.
+if (!process.env.JWT_SECRET) throw new Error('Falta JWT_SECRET para firmar las sesiones de prueba.');
+const secreto = new TextEncoder().encode(process.env.JWT_SECRET.trim());
 
 async function cookieDe(rol: 'viewer' | 'editor'): Promise<string> {
   const token = await new SignJWT({ userId: '00000000-0000-4000-8000-000000000000', email: `e2e-${rol}@example.com`, role: rol })
@@ -31,7 +33,16 @@ test('sin sesión, la API responde 401', async ({ request }) => {
 
 test('una cuenta de reporte que abre páginas de soporte va a "Reportar una falla"', async ({ request }) => {
   const cookie = await cookieDe('viewer');
-  for (const ruta of ['/soporte', '/soporte/salas', '/soporte/tecnicos', '/soporte/alertas', '/soporte/incidencias', '/soporte/usuarios']) {
+  for (const ruta of [
+    '/soporte',
+    '/soporte/salas',
+    '/soporte/tecnicos',
+    '/soporte/alertas',
+    '/soporte/incidencias',
+    '/soporte/usuarios',
+    '/soporte/mantenimiento',
+    '/soporte/informe',
+  ]) {
     const respuesta = await pedir(request, 'GET', ruta, cookie);
     expect(respuesta.status(), ruta).toBe(307);
     expect(respuesta.headers().location, ruta).toMatch(/\/soporte\/reportar$/);
@@ -52,6 +63,11 @@ test('una cuenta de reporte no puede cambiar estados ni administrar', async ({ r
     ['POST', '/api/soporte/incidencias/INC-0001/asignar'],
     ['GET', '/api/soporte/exportar/equipos'],
     ['PATCH', '/api/soporte/usuarios/00000000-0000-4000-8000-000000000000'],
+    ['POST', '/api/soporte/usuarios/00000000-0000-4000-8000-000000000000/solicitud'],
+    ['PATCH', '/api/soporte/incidencias/INC-0001'],
+    ['GET', '/api/soporte/mantenimiento'],
+    ['POST', '/api/soporte/mantenimiento'],
+    ['POST', '/api/soporte/mantenimiento/plan'],
   ];
   for (const [metodo, ruta] of prohibidas) {
     const respuesta = await pedir(request, metodo, ruta, cookie);
@@ -62,7 +78,15 @@ test('una cuenta de reporte no puede cambiar estados ni administrar', async ({ r
 
 test('las páginas de una cuenta de reporte no se le bloquean', async ({ request }) => {
   const cookie = await cookieDe('viewer');
-  for (const ruta of ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta']) {
+  for (const ruta of [
+    '/soporte/reportar',
+    '/soporte/mis-reportes',
+    '/soporte/ayuda',
+    '/soporte/cuenta',
+    '/soporte/avisos',
+    // La ficha de un caso pasa el middleware; la página solo muestra los casos propios.
+    '/soporte/incidencias/INC-0001',
+  ]) {
     const respuesta = await pedir(request, 'GET', ruta, cookie);
     // El middleware la deja pasar (no redirige); el contenido depende de la base y no se evalúa aquí.
     expect(respuesta.status(), ruta).not.toBe(307);

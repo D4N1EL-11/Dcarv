@@ -6,22 +6,28 @@ import {
   puedeUsarApi,
   puedeVerPagina,
   redireccionReporte,
+  puedeSolicitarSoporte,
   redireccionSinPermiso,
-  rolParaCorreo,
+  ROL_INICIAL,
 } from '@/lib/auth/permisos';
 
-describe('rol según el correo', () => {
-  it('@usa.edu.co nace como soporte; los demás, como cuenta de reporte', () => {
-    expect(rolParaCorreo('daniel@usa.edu.co')).toBe('editor');
-    expect(rolParaCorreo('  Ana.Perez@USA.EDU.CO ')).toBe('editor');
-    expect(rolParaCorreo('ana@gmail.com')).toBe('viewer');
-    expect(rolParaCorreo('ana@hotmail.com')).toBe('viewer');
+describe('cuentas nuevas y solicitudes de soporte', () => {
+  it('toda cuenta nace como cuenta de reporte, sin importar el correo', () => {
+    expect(ROL_INICIAL).toBe('viewer');
+    expect(esSoporte(ROL_INICIAL)).toBe(false);
+  });
+
+  it('solo un correo @usa.edu.co puede pedir el acceso de soporte', () => {
+    expect(puedeSolicitarSoporte('daniel@usa.edu.co')).toBe(true);
+    expect(puedeSolicitarSoporte('  Ana.Perez@USA.EDU.CO ')).toBe(true);
+    expect(puedeSolicitarSoporte('ana@gmail.com')).toBe(false);
+    expect(puedeSolicitarSoporte('ana@hotmail.com')).toBe(false);
   });
 
   it('solo cuenta el dominio exacto', () => {
-    expect(rolParaCorreo('x@usa.edu.co.falso.com')).toBe('viewer');
-    expect(rolParaCorreo('x@estudiantes-usa.edu.co')).toBe('viewer');
-    expect(rolParaCorreo('usa.edu.co@gmail.com')).toBe('viewer');
+    expect(puedeSolicitarSoporte('x@usa.edu.co.falso.com')).toBe(false);
+    expect(puedeSolicitarSoporte('x@estudiantes-usa.edu.co')).toBe(false);
+    expect(puedeSolicitarSoporte('usa.edu.co@gmail.com')).toBe(false);
   });
 
   it('admin y editor son soporte; viewer no', () => {
@@ -41,11 +47,11 @@ describe('páginas', () => {
     }
   });
 
-  it('una cuenta de reporte solo abre reportar, sus reportes, ayuda y cuenta', () => {
-    for (const ruta of ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta']) {
+  it('una cuenta de reporte solo abre reportar, sus reportes, la ficha de un caso, avisos, ayuda y cuenta', () => {
+    for (const ruta of ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta', '/soporte/avisos', '/soporte/incidencias/INC-0001']) {
       expect(puedeVerPagina('viewer', ruta)).toBe(true);
     }
-    for (const ruta of ['/soporte', '/soporte/salas', '/soporte/tecnicos', '/soporte/incidencias', '/soporte/alertas', '/soporte/equipos/nuevo', '/soporte/reportarX']) {
+    for (const ruta of ['/soporte', '/soporte/salas', '/soporte/tecnicos', '/soporte/incidencias', '/soporte/alertas', '/soporte/equipos/nuevo', '/soporte/reportarX', '/soporte/mantenimiento', '/soporte/informe', '/soporte/incidencias/INC-0001/otra']) {
       expect(puedeVerPagina('viewer', ruta)).toBe(false);
     }
   });
@@ -73,6 +79,14 @@ describe('API', () => {
     expect(puedeUsarApi('viewer', 'post', '/api/soporte/incidencias/INC-0001/foto')).toBe(true);
   });
 
+  it('una cuenta de reporte conversa en sus casos, lee sus avisos y pide el acceso de soporte', () => {
+    expect(puedeUsarApi('viewer', 'GET', '/api/soporte/incidencias/INC-0001/comentarios')).toBe(true);
+    expect(puedeUsarApi('viewer', 'POST', '/api/soporte/incidencias/INC-0001/comentarios')).toBe(true);
+    expect(puedeUsarApi('viewer', 'GET', '/api/soporte/avisos')).toBe(true);
+    expect(puedeUsarApi('viewer', 'POST', '/api/soporte/avisos/leidos')).toBe(true);
+    expect(puedeUsarApi('viewer', 'POST', '/api/soporte/cuenta/solicitud')).toBe(true);
+  });
+
   it('una cuenta de reporte no cambia estados ni administra nada', () => {
     const prohibidas: [string, string][] = [
       ['PATCH', '/api/soporte/equipos/PC-01/estado'],
@@ -91,6 +105,12 @@ describe('API', () => {
       ['GET', '/api/soporte/alertas'],
       ['GET', '/api/soporte/equipos/PC-01/incidencias'],
       ['DELETE', '/api/soporte/equipos/PC-01/incidencias'],
+      ['PATCH', '/api/soporte/incidencias/INC-0001'],
+      ['DELETE', '/api/soporte/incidencias/INC-0001/comentarios'],
+      ['POST', '/api/soporte/usuarios/1/solicitud'],
+      ['GET', '/api/soporte/mantenimiento'],
+      ['POST', '/api/soporte/mantenimiento'],
+      ['POST', '/api/soporte/mantenimiento/plan'],
     ];
     for (const [metodo, ruta] of prohibidas) expect(puedeUsarApi('viewer', metodo, ruta), `${metodo} ${ruta}`).toBe(false);
   });

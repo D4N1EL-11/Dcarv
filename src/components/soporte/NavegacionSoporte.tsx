@@ -12,6 +12,7 @@ import {
 } from '@/lib/alertasVistas';
 import { esSoporte, inicioPara, type Rol } from '@/lib/auth/permisos';
 import { BuscadorGlobal } from './BuscadorGlobal';
+import { CampanaAvisos } from './CampanaAvisos';
 import { MenuUsuario } from './MenuUsuario';
 
 type Enlace = { href: string; texto: string; icono: NombreIcono };
@@ -20,6 +21,7 @@ const ENLACES_SOPORTE: Enlace[] = [
   { href: '/soporte', texto: 'Panel', icono: 'panel' },
   { href: '/soporte/incidencias', texto: 'Incidencias', icono: 'incidencias' },
   { href: '/soporte/salas', texto: 'Salas', icono: 'salas' },
+  { href: '/soporte/mantenimiento', texto: 'Mantenimiento', icono: 'mantenimiento' },
   { href: '/soporte/tecnicos', texto: 'Técnicos', icono: 'tecnicos' },
   { href: '/soporte/alertas', texto: 'Alertas', icono: 'alertas' },
 ];
@@ -30,10 +32,17 @@ const ENLACES_REPORTE: Enlace[] = [
   { href: '/soporte/mis-reportes', texto: 'Mis reportes', icono: 'check' },
 ];
 
-// candidatos: códigos de los candidatos a baja; vistos: los que ya se vieron en /soporte/alertas.
-type Props = { email: string; rol: Rol; candidatos: string[]; vistos: string[] };
+// candidatos: códigos de los candidatos a baja; vistos: los que ya se vieron en /soporte/alertas;
+// avisosSinLeer: el número inicial de la campana.
+type Props = { email: string; rol: Rol; candidatos: string[]; vistos: string[]; avisosSinLeer: number };
 
-export function NavegacionSoporte({ email, rol, candidatos: candidatosIniciales, vistos: vistosIniciales }: Props) {
+export function NavegacionSoporte({
+  email,
+  rol,
+  candidatos: candidatosIniciales,
+  vistos: vistosIniciales,
+  avisosSinLeer,
+}: Props) {
   const soporte = esSoporte(rol);
   const enlaces = soporte ? ENLACES_SOPORTE : ENLACES_REPORTE;
   const ruta = usePathname();
@@ -112,7 +121,10 @@ export function NavegacionSoporte({ email, rol, candidatos: candidatosIniciales,
               aria-current={activo(href) ? 'page' : undefined}
               className={`relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition hover:text-texto md:after:absolute md:after:inset-x-3 md:after:-bottom-[0.9rem] md:after:h-px ${activo(href) ? 'text-primario md:after:bg-primario' : 'text-texto-suave md:after:bg-transparent'}`}
             >
-              <Icono nombre={icono} />
+              {/* Entre md y lg el menú cabe en una fila solo sin los íconos. */}
+              <span className="md:max-lg:hidden">
+                <Icono nombre={icono} />
+              </span>
               {texto}
               {href === '/soporte/alertas' && alertas > 0 ? (
                 <span className="rounded-full border border-baja/40 bg-baja/15 px-1.5 text-xs font-semibold text-baja">
@@ -128,6 +140,7 @@ export function NavegacionSoporte({ email, rol, candidatos: candidatosIniciales,
 
         <div className="ml-auto flex items-center gap-2">
           {soporte ? <BuscadorGlobal /> : null}
+          <CampanaAvisos sinLeerInicial={avisosSinLeer} />
           <MenuUsuario email={email} rol={rol} />
           <button
             type="button"

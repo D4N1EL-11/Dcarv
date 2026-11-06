@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { activarCuenta, buscarCuentaPendiente, fijarRol, iniciarSesion, ponerCookieSesion } from '@/lib/auth/acceso';
-import { rolParaCorreo } from '@/lib/auth/permisos';
+import { conContexto, fijarActor } from '@/lib/auth/contexto';
+import { ROL_INICIAL } from '@/lib/auth/permisos';
+import { prepararCuentaNueva } from '@/lib/dataService';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 const registerSchema = z.object({
@@ -13,7 +15,12 @@ function error(status: number, mensaje: string, code: string) {
 	return NextResponse.json({ error: mensaje, code }, { status });
 }
 
-export async function POST(request: Request) {
+// El contexto de la petición deja anotado en el registro de cambios quién pidió el acceso de soporte.
+export function POST(request: Request) {
+	return conContexto(() => registrar(request));
+}
+
+async function registrar(request: Request) {
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -24,8 +31,9 @@ export async function POST(request: Request) {
 	const parsed = registerSchema.safeParse(body);
 	if (!parsed.success) return error(400, 'Datos inválidos', 'VALIDATION_ERROR');
 	const { email, password } = parsed.data;
-	// @usa.edu.co nace como soporte; cualquier otro correo, como cuenta de reporte (lib/auth/permisos.ts).
-	const rol = rolParaCorreo(email);
+	// Toda cuenta nace como cuenta de reporte: el correo no se verifica, así que un correo
+	// @usa.edu.co solo abre una solicitud de soporte que un administrador aprueba (lib/datos/usuarios.ts).
+	const rol = ROL_INICIAL;
 
 	try {
 		// La cuenta se crea ya confirmada: no se depende de un correo de confirmación (ver lib/auth/acceso.ts).
@@ -55,14 +63,19 @@ export async function POST(request: Request) {
 		}
 
 		// Antes de iniciar sesión, para que el token ya lleve el rol correcto.
-		if (id) await fijarRol(id, rol);
+		let solicitud = false;
+		if (id) {
+			await fijarRol(id, rol);
+			fijarActor({ id, email, rol });
+			({ solicitud } = await prepararCuentaNueva(id));
+		}
 
 		const acceso = await iniciarSesion(email, password);
 		if (!acceso.ok) {
-			return NextResponse.json({ success: true, data: { sesionIniciada: false, rol } }, { status: 201 });
+			return NextResponse.json({ success: true, data: { sesionIniciada: false, rol, solicitud } }, { status: 201 });
 		}
 		return ponerCookieSesion(
-			NextResponse.json({ success: true, data: { ...acceso.usuario, sesionIniciada: true, rol } }, { status: 201 }),
+			NextResponse.json({ success: true, data: { ...acceso.usuario, sesionIniciada: true, rol, solicitud } }, { status: 201 }),
 			acceso.token,
 		);
 	} catch {

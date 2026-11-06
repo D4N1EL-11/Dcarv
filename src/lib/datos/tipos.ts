@@ -1,7 +1,8 @@
+import type { CategoriaIncidencia, PrioridadIncidencia } from '@/lib/reglas/clasificacion';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
 import type { EstadoIncidencia } from '@/lib/reglas/incidencia';
 
-export type { EstadoEquipo, EstadoIncidencia };
+export type { CategoriaIncidencia, EstadoEquipo, EstadoIncidencia, PrioridadIncidencia };
 
 export type FilaSala = {
   id: string;
@@ -36,6 +37,18 @@ export type FilaIncidencia = {
   // Correo de quien la reportó (null en las anteriores a las cuentas de reporte).
   reportadoPor: string | null;
   tieneFoto: boolean;
+  categoria: CategoriaIncidencia;
+  prioridad: PrioridadIncidencia;
+  // Comentarios de la conversación del caso (incluida la nota de cierre).
+  comentarios: number;
+};
+
+// Ficha de un caso: la fila del listado más su sala y quién y cuándo lo reportó.
+export type FichaCaso = FilaIncidencia & {
+  sala: string;
+  salaId: string;
+  reportadoPorId: string | null;
+  creadaEn: string; // ISO 8601 en UTC
 };
 
 export type DetalleEquipo = { equipo: FilaEquipo; historial: FilaIncidencia[] };

@@ -7,10 +7,12 @@ import {
 } from '@/lib/config/soporte';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { esCandidatoABaja, estaEnObservacion } from '@/lib/reglas/alertas';
+import { avisoCasoAsignado, avisoCasoReasignado } from '@/lib/reglas/avisos';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { diasEntre, hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
 import { puedeAsignarse, type EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { elegirConMenosCarga, validarNombreTecnico } from '@/lib/reglas/tecnico';
+import { avisarA } from './avisos';
 import { registrarEvento } from './eventos';
 import type { FilaCandidato, FilaTecnico, ResultadoActividad } from './tipos';
 
@@ -50,8 +52,8 @@ export async function renombrarTecnico(id: string, nombre: string): Promise<void
 
 export async function asignarTecnico(numeroCaso: string, tecnicoId: string): Promise<void> {
   await conTransaccion(async (tx) => {
-    const incidencia = await tx.query<{ estado: EstadoIncidencia; equipo_codigo: string }>(
-      `SELECT i.estado, e.codigo AS equipo_codigo
+    const incidencia = await tx.query<{ estado: EstadoIncidencia; equipo_codigo: string; reportado_por: string | null }>(
+      `SELECT i.estado, e.codigo AS equipo_codigo, i.reportado_por
          FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
         WHERE i.numero_caso = $1 FOR UPDATE OF i`,
       [numeroCaso],
@@ -74,10 +76,18 @@ export async function asignarTecnico(numeroCaso: string, tecnicoId: string): Pro
       equipoCodigo: fila.equipo_codigo,
       detalle: `a ${tecnico.rows[0].nombre}`,
     });
+    // Quien reportó la falla se entera de que ya la atienden.
+    await avisarA(tx, fila.reportado_por, avisoCasoAsignado(numeroCaso, fila.equipo_codigo, tecnico.rows[0].nombre));
   });
 }
 
-type CasoEnRevision = { id: string; tecnico_id: string | null; numero_caso: string; equipo_codigo: string };
+type CasoEnRevision = {
+  id: string;
+  tecnico_id: string | null;
+  numero_caso: string;
+  equipo_codigo: string;
+  reportado_por: string | null;
+};
 
 // Casos en revisión por técnico activo, en orden de nombre (desempate de elegirConMenosCarga).
 async function cargaDeActivos(tx: PoolClient): Promise<Map<string, number>> {
@@ -114,6 +124,7 @@ async function repartir(
       equipoCodigo: caso.equipo_codigo,
       detalle: `a ${rows[0]?.nombre ?? 'otro técnico'} (${motivo})`,
     });
+    await avisarA(tx, caso.reportado_por, avisoCasoReasignado(caso.numero_caso, caso.equipo_codigo, rows[0]?.nombre ?? 'otro técnico'));
     carga.set(elegido, (carga.get(elegido) ?? 0) + 1);
     if (caso.tecnico_id && carga.has(caso.tecnico_id)) {
       carga.set(caso.tecnico_id, carga.get(caso.tecnico_id)! - 1);
@@ -127,7 +138,7 @@ async function repartir(
 export async function reasignarIncidenciasVencidas(): Promise<{ reasignadas: number }> {
   return conTransaccion(async (tx) => {
     const { rows: enRevision } = await tx.query<CasoEnRevision & { dia_estado: string }>(
-      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo,
+      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo, i.reportado_por,
               (i.fecha_estado AT TIME ZONE $1)::date AS dia_estado
          FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
         WHERE i.estado = 'en_revision' FOR UPDATE OF i`,
@@ -162,7 +173,7 @@ export async function cambiarActividadTecnico(
     if (activo) return { activo, reasignadas: 0, sinReasignar: 0 };
 
     const { rows: casos } = await tx.query<CasoEnRevision>(
-      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo
+      `SELECT i.id, i.tecnico_id, i.numero_caso, e.codigo AS equipo_codigo, i.reportado_por
          FROM incidencias i JOIN equipos e ON e.id = i.equipo_id
         WHERE i.tecnico_id = $1 AND i.estado = 'en_revision'
         ORDER BY i.created_at

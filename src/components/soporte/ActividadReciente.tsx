@@ -23,7 +23,7 @@ export function ActividadReciente({ eventos }: { eventos: EventoActividad[] }) {
         return (
           <li key={`${evento.tipo}-${evento.numeroCaso}-${evento.momento}`}>
             <Link
-              href={`/soporte/equipos/${encodeURIComponent(evento.equipoCodigo)}#${evento.numeroCaso}`}
+              href={`/soporte/incidencias/${encodeURIComponent(evento.numeroCaso)}`}
               className="flex items-start gap-3 rounded-lg px-2 py-2 transition hover:bg-primario-suave"
             >
               <span className={`mt-0.5 grid size-6 place-items-center rounded-full bg-superficie-alta ${color}`}>

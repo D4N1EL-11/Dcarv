@@ -12,7 +12,13 @@ export default [
 	// sin estas variables globales, `process`, `console` y `URL` fallaban con no-undef en el CI.
 	{
 		files: ['**/*.{js,mjs,cjs}'],
+		ignores: ['public/sw.js'],
 		languageOptions: { globals: { ...globals.node } },
+	},
+	// El service worker corre en el navegador, en su propio contexto (self, caches, clients).
+	{
+		files: ['public/sw.js'],
+		languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } },
 	},
 	{
 		files: ['**/*.{ts,tsx}'],

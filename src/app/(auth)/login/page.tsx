@@ -7,7 +7,7 @@ import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
 import { esRolValido, inicioPara } from '@/lib/auth/permisos';
 import { rutaSegura } from '@/lib/auth/redireccion';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { Input } from '@/components/ui/input';
 
 // Tras varios fallos seguidos el servidor hace esperar (lib/reglas/acceso.ts): se avisa antes.
@@ -158,9 +158,9 @@ export default function LoginPage() {
 					</p>
 				) : null}
 
-				<Button type="submit" size="lg" className="mt-1 w-full" loading={isSubmitting}>
+				<Boton type="submit" tamano="grande" className="mt-1 w-full" cargando={isSubmitting}>
 					{isSubmitting ? 'Entrando…' : 'Entrar'}
-				</Button>
+				</Boton>
 			</form>
 		</MarcoAcceso>
 	);

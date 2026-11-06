@@ -6,6 +6,7 @@ import { EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { DOMINIOS_SOPORTE } from '@/lib/auth/permisos';
 import {
+  DIAS_AVISO_MANTENIMIENTO,
   DIAS_REASIGNACION,
   DIAS_VENTANA_ALERTA,
   INCIDENCIAS_PARA_ALERTA,
@@ -47,6 +48,30 @@ const ATAJOS = [
 
 const PREGUNTAS = [
   {
+    pregunta: 'Tengo correo @usa.edu.co. ¿Por qué mi cuenta es de reporte?',
+    respuesta:
+      'El correo no se verifica al crear la cuenta, así que cualquiera podría escribir una dirección institucional. Por eso toda cuenta nace como cuenta de reporte y, con un correo @usa.edu.co, queda una solicitud de acceso de soporte. Un administrador la aprueba en "Cuentas y roles" y a usted le llega un aviso; el menú cambia solo, sin cerrar sesión.',
+  },
+  {
+    pregunta: '¿Cómo sé qué pasa con una falla que reporté?',
+    respuesta:
+      'En "Mis reportes", pulse el número de caso: verá su estado, quién lo atiende y la conversación con soporte. La campana del menú le avisa cuando un técnico lo toma, cuando soporte le escribe y cuando se cierra (con la solución aplicada).',
+  },
+  {
+    pregunta: '¿Qué son la categoría y la prioridad?',
+    respuesta:
+      'La categoría es el tipo de falla (hardware, software, red, periféricos u otro): la elige quien reporta y soporte la puede corregir. La prioridad (alta, media o baja) la decide soporte en la ficha del caso; la alta aparece primero en "Requiere atención".',
+  },
+  {
+    pregunta: '¿Cómo funciona el mantenimiento preventivo?',
+    respuesta: `En "Mantenimiento" se programa cada cuántos días se revisa cada sala y se registra cada revisión hecha. La próxima fecha se cuenta desde el último mantenimiento; la sala aparece como "Próximo" cuando faltan ${DIAS_AVISO_MANTENIMIENTO} días o menos y como "Vencido" al pasar la fecha (también se avisa en el Panel).`,
+  },
+  {
+    pregunta: '¿Qué trae el informe mensual?',
+    respuesta:
+      'Casos reportados y cerrados, tiempo medio de cierre, porcentaje cerrado a tiempo, lo que más falla por categoría y por sala, el trabajo de cada técnico, equipos con más fallas, bajas y mantenimientos del mes. "Imprimir o guardar PDF" lo deja listo para la coordinación.',
+  },
+  {
     pregunta: '¿Cómo registro todo el inventario de una sala?',
     respuesta: `En "Registrar equipo", use "Varios equipos a la vez": un prefijo y un rango generan hasta ${MAXIMO_LOTE_EQUIPOS} códigos consecutivos. Los repetidos se informan y se saltan.`,
   },
@@ -66,7 +91,7 @@ const PREGUNTAS = [
   },
   {
     pregunta: '¿En qué orden aparece "Requiere atención" en el Panel?',
-    respuesta: `De la incidencia pendiente más antigua a la más reciente: lo que más espera va primero. En rojo, las que superan los ${DIAS_REASIGNACION} días desde el reporte.`,
+    respuesta: `Primero la prioridad alta y, dentro de cada prioridad, de la incidencia pendiente más antigua a la más reciente: lo que más espera va primero. En rojo, las que superan los ${DIAS_REASIGNACION} días desde el reporte.`,
   },
   {
     pregunta: '¿Para qué sirven las etiquetas QR?',
@@ -126,16 +151,17 @@ export default function PaginaAyuda() {
           <Tarjeta className="grid content-start gap-2">
             <h3 className="text-lg font-medium">Soporte</h3>
             <p className="text-sm text-texto-suave">
-              Correos @{DOMINIOS_SOPORTE[0]}. Gestionan todo: salas, equipos, técnicos, estados, asignaciones,
-              cierres, alertas, etiquetas QR y el registro de cambios. Un administrador además cambia los roles en
-              “Cuentas y roles”.
+              Gestionan todo: salas, equipos, técnicos, estados, asignaciones, cierres, prioridades, mantenimiento,
+              alertas, etiquetas QR, el informe mensual y el registro de cambios. Se llega aquí con un correo
+              @{DOMINIOS_SOPORTE[0]} y la aprobación de un administrador, que además cambia los roles en “Cuentas y roles”.
             </p>
           </Tarjeta>
           <Tarjeta className="grid content-start gap-2">
             <h3 className="text-lg font-medium">Reporte</h3>
             <p className="text-sm text-texto-suave">
-              Cualquier otro correo. Solo reportan fallas (con foto opcional) y siguen sus propios casos en “Mis
-              reportes”. No cambian estados, no dan de baja ni registran salas, equipos o técnicos.
+              Toda cuenta nueva. Reportan fallas (con foto opcional), siguen sus propios casos en “Mis reportes” y
+              conversan con soporte en cada caso. No cambian estados, no dan de baja ni registran salas, equipos o
+              técnicos.
             </p>
           </Tarjeta>
         </div>
@@ -192,6 +218,7 @@ export default function PaginaAyuda() {
           </table>
         </section>
 
+
         <section aria-labelledby="preguntas" className="grid content-start gap-5">
           <TituloSeccion id="preguntas" titulo="Preguntas frecuentes" />
           <div className="grid gap-2">
@@ -204,6 +231,37 @@ export default function PaginaAyuda() {
           </div>
         </section>
       </div>
+
+      <section id="instalar" aria-labelledby="titulo-instalar" className="grid scroll-mt-24 content-start gap-5">
+        <TituloSeccion id="titulo-instalar" titulo="Instalar la app en el celular o el computador" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Tarjeta className="grid content-start gap-2">
+            <h3 className="text-lg font-medium">Android (Chrome)</h3>
+            <p className="text-sm text-texto-suave">
+              Abra el menú de su cuenta (la inicial arriba a la derecha) y elija “Instalar la app”. También desde el
+              menú ⋮ de Chrome: “Instalar aplicación”.
+            </p>
+          </Tarjeta>
+          <Tarjeta className="grid content-start gap-2">
+            <h3 className="text-lg font-medium">iPhone y iPad (Safari)</h3>
+            <p className="text-sm text-texto-suave">
+              Toque el botón Compartir (el cuadro con la flecha hacia arriba) y luego “Agregar a inicio”. El ícono
+              dorado queda junto a sus otras apps.
+            </p>
+          </Tarjeta>
+          <Tarjeta className="grid content-start gap-2">
+            <h3 className="text-lg font-medium">Computador (Edge o Chrome)</h3>
+            <p className="text-sm text-texto-suave">
+              “Instalar la app” en el menú de su cuenta, o el ícono de instalar en la barra de direcciones. Se abre
+              en su propia ventana, sin pestañas.
+            </p>
+          </Tarjeta>
+        </div>
+        <p className="text-sm text-texto-suave">
+          La app instalada siempre muestra datos al día: no guarda casos ni equipos en el dispositivo. Sin internet
+          muestra un aviso de “Sin conexión” con un botón para intentar de nuevo cuando regrese la red.
+        </p>
+      </section>
     </>
   );
 }

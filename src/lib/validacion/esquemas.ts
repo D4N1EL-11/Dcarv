@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import { ESTADOS_EQUIPO, ESTADOS_INCIDENCIA } from '@/lib/config/soporte';
+import {
+  CATEGORIAS_INCIDENCIA,
+  ESTADOS_EQUIPO,
+  ESTADOS_INCIDENCIA,
+  LARGO_MAXIMO_COMENTARIO,
+  LARGO_MAXIMO_NOTAS_MANTENIMIENTO,
+  LARGO_MINIMO_COMENTARIO,
+  MAXIMO_DIAS_MANTENIMIENTO,
+  MINIMO_DIAS_MANTENIMIENTO,
+  PRIORIDADES_INCIDENCIA,
+} from '@/lib/config/soporte';
 
 // Los filtros llegan de la URL: un parámetro vacío equivale a no filtrar.
 const opcional = <T extends z.ZodType>(esquema: T) =>
@@ -22,6 +32,10 @@ export const esquemaIncidencia = z.object({
     .trim()
     .min(3, 'La descripción debe tener al menos 3 caracteres.')
     .max(1000),
+  // Opcionales para no romper clientes anteriores: sin categoría queda 'otro'; sin prioridad, 'media'.
+  categoria: z.enum(CATEGORIAS_INCIDENCIA).optional(),
+  // Solo cuenta si reporta soporte (la ruta la ignora para una cuenta de reporte).
+  prioridad: z.enum(PRIORIDADES_INCIDENCIA).optional(),
 });
 
 export const esquemaFiltrosEquipos = z.object({
@@ -36,6 +50,8 @@ export const esquemaFiltrosIncidencias = z.object({
   busqueda: opcional(z.string().trim().max(80)),
   tecnicoId: opcional(z.uuid()),
   salaId: opcional(z.uuid()),
+  categoria: opcional(z.enum(CATEGORIAS_INCIDENCIA)),
+  prioridad: opcional(z.enum(PRIORIDADES_INCIDENCIA)),
 });
 
 const nombreTecnico = z
@@ -55,7 +71,63 @@ export const esquemaActualizarTecnico = z
 
 export const esquemaAsignar = z.object({ tecnicoId: z.uuid('Seleccione un técnico.') });
 
-export const esquemaCerrar = z.object({ equipoFuncional: z.boolean().optional() });
+const textoComentario = z
+  .string()
+  .trim()
+  .min(LARGO_MINIMO_COMENTARIO, `Escriba al menos ${LARGO_MINIMO_COMENTARIO} caracteres.`)
+  .max(LARGO_MAXIMO_COMENTARIO, `Máximo ${LARGO_MAXIMO_COMENTARIO} caracteres.`);
+
+// Al cerrar: devolver el equipo a funcional y dejar la nota de solución (ambos opcionales).
+export const esquemaCerrar = z.object({
+  equipoFuncional: z.boolean().optional(),
+  nota: z.preprocess((v) => (typeof v === 'string' && !v.trim() ? undefined : v), textoComentario.optional()),
+});
+
+export const esquemaComentario = z.object({ texto: textoComentario });
+
+// PATCH /api/soporte/incidencias/[numero]: corregir la categoría o la prioridad.
+export const esquemaClasificar = z
+  .object({ categoria: z.enum(CATEGORIAS_INCIDENCIA).optional(), prioridad: z.enum(PRIORIDADES_INCIDENCIA).optional() })
+  .refine((datos) => datos.categoria !== undefined || datos.prioridad !== undefined, {
+    message: 'Indique la categoría o la prioridad.',
+  });
+
+// Número de caso de una ruta dinámica: INC-0001 (también en minúsculas).
+export const esquemaNumeroCaso = z
+  .string()
+  .trim()
+  .regex(/^inc-\d{4,}$/i, 'Número de caso no válido.')
+  .transform((v) => v.toUpperCase());
+
+export const esquemaDecisionSolicitud = z.object({ aprobar: z.boolean() });
+
+// Avisos: sin ids se marcan todos como leídos.
+export const esquemaAvisosLeidos = z.object({ ids: z.array(z.number().int().positive()).max(100).optional() });
+
+export const esquemaListaAvisos = z.object({
+  antesDe: opcional(z.coerce.number().int().positive()),
+  limite: opcional(z.coerce.number().int().min(1).max(50)),
+  soloSinLeer: opcional(z.enum(['1'])),
+});
+
+export const esquemaFechaIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Escriba una fecha válida.');
+
+export const esquemaMantenimiento = z.object({
+  salaId: z.uuid('Seleccione una sala.'),
+  fecha: esquemaFechaIso,
+  notas: z.string().trim().max(LARGO_MAXIMO_NOTAS_MANTENIMIENTO, `Máximo ${LARGO_MAXIMO_NOTAS_MANTENIMIENTO} caracteres.`).default(''),
+});
+
+// cadaDias null quita el plan de la sala.
+export const esquemaPlanMantenimiento = z.object({
+  salaId: z.uuid('Seleccione una sala.'),
+  cadaDias: z
+    .number()
+    .int('Escriba un número entero de días.')
+    .min(MINIMO_DIAS_MANTENIMIENTO, `Mínimo ${MINIMO_DIAS_MANTENIMIENTO} días.`)
+    .max(MAXIMO_DIAS_MANTENIMIENTO, `Máximo ${MAXIMO_DIAS_MANTENIMIENTO} días.`)
+    .nullable(),
+});
 
 export const esquemaTraslado = z.object({ salaId: z.uuid('Seleccione la sala de destino.') });
 

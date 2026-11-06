@@ -6,8 +6,16 @@ import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
 import { CampoTexto } from '@/components/ui/Campo';
 import { Modal } from '@/components/ui/Modal';
+import { Selector } from '@/components/ui/Selector';
 import { useRefrescar } from '@/hooks/use-refrescar';
 import { llamarApi } from '@/lib/clienteApi';
+import { CATEGORIAS_INCIDENCIA, PRIORIDADES_INCIDENCIA } from '@/lib/config/soporte';
+import {
+  ETIQUETA_CATEGORIA,
+  ETIQUETA_PRIORIDAD,
+  type CategoriaIncidencia,
+  type PrioridadIncidencia,
+} from '@/lib/reglas/clasificacion';
 import { subirFotoIncidencia } from '@/lib/fotoCliente';
 import type { ResultadoIncidencia } from '@/lib/datos/tipos';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
@@ -30,6 +38,8 @@ export function FormularioIncidencia({ codigo, estado }: { codigo: string; estad
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
+  const [categoria, setCategoria] = useState<CategoriaIncidencia>('hardware');
+  const [prioridad, setPrioridad] = useState<PrioridadIncidencia>('media');
   const { mostrar } = useAvisos();
 
   const problema = esquemaIncidencia.safeParse({ descripcion }).error?.issues[0]?.message;
@@ -38,6 +48,8 @@ export function FormularioIncidencia({ codigo, estado }: { codigo: string; estad
     setDescripcion('');
     setError('');
     setFoto(null);
+    setCategoria('hardware');
+    setPrioridad('media');
   }, []);
 
   async function enviar(evento: FormEvent) {
@@ -50,7 +62,7 @@ export function FormularioIncidencia({ codigo, estado }: { codigo: string; estad
     const respuesta = await llamarApi<ResultadoIncidencia>(
       `/api/soporte/equipos/${encodeURIComponent(codigo)}/incidencias`,
       'POST',
-      { descripcion },
+      { descripcion, categoria, prioridad },
     );
     if (!respuesta.ok) {
       setCargando(false);
@@ -87,6 +99,22 @@ export function FormularioIncidencia({ codigo, estado }: { codigo: string; estad
             <p className="-mt-2 text-right text-xs text-texto-suave">
               {descripcion.length}/{MAXIMO}
             </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Selector
+                etiqueta="Tipo de falla"
+                value={categoria}
+                disabled={cargando}
+                onChange={(evento) => setCategoria(evento.target.value as CategoriaIncidencia)}
+                opciones={CATEGORIAS_INCIDENCIA.map((c) => ({ valor: c, texto: ETIQUETA_CATEGORIA[c] }))}
+              />
+              <Selector
+                etiqueta="Prioridad"
+                value={prioridad}
+                disabled={cargando}
+                onChange={(evento) => setPrioridad(evento.target.value as PrioridadIncidencia)}
+                opciones={PRIORIDADES_INCIDENCIA.map((p) => ({ valor: p, texto: ETIQUETA_PRIORIDAD[p] }))}
+              />
+            </div>
             <SelectorFoto archivo={foto} alCambiar={setFoto} deshabilitado={cargando} />
             <p className="text-sm text-texto-suave">{EFECTO[estado]}</p>
             {descripcion && error ? <Aviso tipo="error">{error}</Aviso> : null}

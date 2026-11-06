@@ -180,20 +180,39 @@ async function main() {
 		resultado(nombresIndices.has('ux_salas_nombre'), 'ux_salas_nombre');
 		resultado(nombresRestricciones.has('incidencias_numero_unico'), 'incidencias_numero_unico');
 
-		const rls = await pool.query(`
-			SELECT relname, relrowsecurity
-			FROM pg_class
-			WHERE oid = ANY(ARRAY[
-				to_regclass('public.salas'),
-				to_regclass('public.equipos'),
-				to_regclass('public.incidencias'),
-				to_regclass('public.tecnicos')
-			])
-		`);
+		// Todas las tablas del módulo: la clave pública de Supabase no debe poder leer ninguna (M2 a M11).
+		const tablasProtegidas = [
+			'salas', 'equipos', 'incidencias', 'tecnicos', 'eventos', 'intentos_acceso',
+			'comentarios', 'avisos', 'mantenimientos',
+		];
+		const rls = await pool.query(
+			`SELECT relname, relrowsecurity FROM pg_class
+			  WHERE relnamespace = 'public'::regnamespace AND relname = ANY($1::text[])`,
+			[tablasProtegidas],
+		);
 		const rlsPorTabla = new Map(rls.rows.map((fila) => [fila.relname, fila.relrowsecurity]));
 		console.log('Row Level Security:');
-		for (const tabla of ['salas', 'equipos', 'incidencias', 'tecnicos']) {
+		for (const tabla of tablasProtegidas) {
 			resultado(rlsPorTabla.get(tabla) === true, `${tabla} RLS activo`);
+		}
+
+		// Columnas de las migraciones M7 a M11.
+		const columnas = await pool.query(`
+			SELECT table_name || '.' || column_name AS columna
+			  FROM information_schema.columns
+			 WHERE table_schema = 'public'
+			   AND (table_name, column_name) IN (
+			     ('users', 'solicitud_soporte'), ('incidencias', 'categoria'), ('incidencias', 'prioridad'),
+			     ('salas', 'mantenimiento_cada_dias'), ('salas', 'mantenimiento_desde')
+			   )
+		`);
+		const presentes = new Set(columnas.rows.map((fila) => fila.columna));
+		console.log('Columnas nuevas:');
+		for (const columna of [
+			'users.solicitud_soporte', 'incidencias.categoria', 'incidencias.prioridad',
+			'salas.mantenimiento_cada_dias', 'salas.mantenimiento_desde',
+		]) {
+			resultado(presentes.has(columna), columna);
 		}
 
 		console.log('Pruebas de integridad (transacción con ROLLBACK):');

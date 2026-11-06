@@ -22,7 +22,13 @@ export type AccionEvento =
   | 'tecnico_renombrado'
   | 'tecnico_activado'
   | 'tecnico_desactivado'
-  | 'rol_cambiado';
+  | 'rol_cambiado'
+  | 'incidencia_clasificada'
+  | 'solicitud_soporte'
+  | 'solicitud_aprobada'
+  | 'solicitud_rechazada'
+  | 'mantenimiento_programado'
+  | 'mantenimiento_realizado';
 
 export type FilaEvento = {
   id: number;
@@ -63,6 +69,14 @@ export function eventosDeEquipo(codigo: string, limite = 50): Promise<FilaEvento
   return consultar<FilaEvento>(
     `SELECT ${COLUMNAS} FROM eventos WHERE equipo_codigo = $1 ORDER BY momento DESC, id DESC LIMIT $2`,
     [codigo, limite],
+  );
+}
+
+// Recorrido de un caso (ficha del caso), del más antiguo al más reciente.
+export function eventosDeCaso(numeroCaso: string, limite = 50): Promise<FilaEvento[]> {
+  return consultar<FilaEvento>(
+    `SELECT ${COLUMNAS} FROM eventos WHERE numero_caso = $1 ORDER BY momento, id LIMIT $2`,
+    [numeroCaso, limite],
   );
 }
 

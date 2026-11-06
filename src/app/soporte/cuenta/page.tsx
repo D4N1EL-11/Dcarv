@@ -2,11 +2,15 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 import { BotonCerrarSesion } from '@/components/soporte/BotonCerrarSesion';
+import { SolicitarSoporte } from '@/components/soporte/SolicitarSoporte';
+import { Aviso } from '@/components/ui/Aviso';
 import { EncabezadoPagina } from '@/components/ui/Encabezado';
 import { Icono, type NombreIcono } from '@/components/ui/Icono';
 import { Tarjeta } from '@/components/ui/Tarjeta';
+import { esRolValido, esSoporte, nombreRol, puedeSolicitarSoporte } from '@/lib/auth/permisos';
 import { getSession } from '@/lib/auth/session';
-import { formatearHora } from '@/lib/formato';
+import { estadoDeCuenta } from '@/lib/dataService';
+import { formatearFecha, formatearHora } from '@/lib/formato';
 import { hoyBogota, sumarDias } from '@/lib/reglas/fechas';
 
 export const metadata: Metadata = { title: 'Mi cuenta' };
@@ -39,6 +43,11 @@ export default async function PaginaCuenta() {
   const sesion = await getSession();
   if (!sesion) redirect('/login?siguiente=%2Fsoporte%2Fcuenta');
   const inicial = sesion.email.charAt(0).toUpperCase();
+  // El rol vigente (no el del token): muestra al instante una solicitud aprobada o rechazada.
+  const estado = await estadoDeCuenta(sesion.userId).catch(() => null);
+  const rol = estado?.rol ?? (esRolValido(sesion.role) ? sesion.role : 'viewer');
+  const soporte = esSoporte(rol);
+  const puedePedir = !soporte && puedeSolicitarSoporte(sesion.email);
   return (
     <>
       <EncabezadoPagina
@@ -59,8 +68,27 @@ export default async function PaginaCuenta() {
           </div>
           <dl className="grid gap-4">
             <Dato icono="reloj" etiqueta="La sesión vence">{textoVencimiento(sesion.exp)}</Dato>
-            <Dato icono="escudo" etiqueta="Acceso">Panel completo de salas, equipos, incidencias y técnicos</Dato>
+            <Dato icono="escudo" etiqueta={`Acceso · ${nombreRol(rol)}`}>
+              {soporte
+                ? 'Panel completo de salas, equipos, incidencias, técnicos y mantenimiento'
+                : 'Reportar fallas y seguir sus casos en "Mis reportes"'}
+            </Dato>
           </dl>
+          {estado?.solicitud ? (
+            <Aviso tipo="info">
+              Su solicitud de acceso de soporte está pendiente desde el {formatearFecha(estado.solicitud)}. Un administrador la
+              revisará; le llegará un aviso a la campana con la respuesta.
+            </Aviso>
+          ) : puedePedir ? (
+            <div className="grid gap-3 rounded-lg border border-borde bg-superficie-alta/40 p-4">
+              <p className="text-sm text-texto-suave">
+                Su correo es institucional: puede pedir entrar al equipo de soporte. Un administrador lo aprueba.
+              </p>
+              <div>
+                <SolicitarSoporte />
+              </div>
+            </div>
+          ) : null}
           <div className="border-t border-borde pt-5">
             <BotonCerrarSesion />
           </div>

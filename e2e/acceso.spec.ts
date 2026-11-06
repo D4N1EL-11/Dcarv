@@ -26,8 +26,9 @@ test('al crear cuenta se avisa qué tipo de cuenta será según el correo', asyn
   const correo = page.locator('#email');
   await correo.fill('ana@gmail.com');
   await expect(page.getByText(/Cuenta de reporte: podrás reportar fallas/)).toBeVisible();
+  // Un correo @usa.edu.co no da soporte por sí solo: queda pendiente de un administrador.
   await correo.fill('ana@usa.edu.co');
-  await expect(page.getByText(/Cuenta de soporte: gestionarás/)).toBeVisible();
+  await expect(page.getByText(/Tu acceso de soporte quedará pendiente hasta que un administrador lo apruebe/)).toBeVisible();
 });
 
 test('el registro mide la contraseña y confirma que coinciden', async ({ page }) => {

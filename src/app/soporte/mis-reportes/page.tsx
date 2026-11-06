@@ -34,7 +34,7 @@ export default async function PaginaMisReportes({ searchParams }: Props) {
         titulo="Mis reportes"
         descripcion={
           resultado.total
-            ? `${plural(pendientes, 'caso sigue', 'casos siguen')} en atención y ${plural(conteo.cerrada, 'está resuelto', 'están resueltos')}. "Abierta" es que soporte aún no lo toma; "En revisión", que un técnico lo atiende; "Cerrada", que ya se resolvió.`
+            ? `${plural(pendientes, 'caso sigue', 'casos siguen')} en atención y ${plural(conteo.cerrada, 'está resuelto', 'están resueltos')}. "Abierta" es que soporte aún no lo toma; "En revisión", que un técnico lo atiende; "Cerrada", que ya se resolvió. Pulse el número de caso para ver su detalle y conversar con soporte.`
             : 'Aquí verá el estado de cada falla que reporte.'
         }
       >

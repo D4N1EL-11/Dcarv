@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { Input } from '@/components/ui/input';
 
 export function FormularioPruebaRestablecimiento() {
@@ -41,7 +41,7 @@ export function FormularioPruebaRestablecimiento() {
 			<Input id="email-prueba-restablecimiento" label="Correo registrado" type="email" autoComplete="email" required value={email} onChange={(evento) => setEmail(evento.target.value)} />
 			{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
 			{enlace ? <p role="status" className="text-sm text-funcional">Enlace listo. Abre la página para definir una nueva contraseña.</p> : null}
-			<Button type="submit" size="lg" className="w-full" loading={procesando}>Generar enlace local</Button>
+			<Boton type="submit" tamano="grande" className="w-full" cargando={procesando}>Generar enlace local</Boton>
 			{enlace ? <Link href={enlace} className="break-all font-medium text-[var(--accent)] underline">Abrir restablecimiento</Link> : null}
 		</form>
 	);

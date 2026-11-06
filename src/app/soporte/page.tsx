@@ -20,9 +20,11 @@ import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 import {
   actividadReciente,
   contarIncidenciasPorEstado,
+  contarMantenimientoPorEstado,
   incidenciasPendientes,
   listarSalas,
   paginarEquipos,
+  planDeMantenimiento,
   serieActividad,
 } from '@/lib/dataService';
 import { formatearFechaLarga, plural } from '@/lib/formato';
@@ -41,6 +43,20 @@ function consultaFiltros(filtros: Filtros): URLSearchParams {
   return consulta;
 }
 
+// "2 salas tienen el mantenimiento preventivo vencido y 1 lo tiene en los próximos días."
+function textoMantenimiento(vencidas: number, proximas: number): string {
+  const partes: string[] = [];
+  if (vencidas) partes.push(`${plural(vencidas, 'sala tiene', 'salas tienen')} el mantenimiento preventivo vencido`);
+  if (proximas) {
+    partes.push(
+      vencidas
+        ? `${proximas} ${proximas === 1 ? 'lo tiene' : 'lo tienen'} en los próximos días`
+        : `${plural(proximas, 'sala tiene', 'salas tienen')} el mantenimiento preventivo en los próximos días`,
+    );
+  }
+  return `${partes.join(' y ')}.`;
+}
+
 function enlacePagina(filtros: Filtros, pagina: number): string {
   const consulta = consultaFiltros(filtros);
   if (pagina > 1) consulta.set('pagina', String(pagina));
@@ -55,7 +71,7 @@ export default async function PanelSoporte({ searchParams }: Props) {
   const filtros = filtrado.success ? filtrado.data : {};
   const pagina = normalizarPagina(parametros.pagina);
   // Todas las consultas en paralelo; la de alertas se comparte con el menú (React cache).
-  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen, pendientes] = await Promise.all([
+  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen, pendientes, plan] = await Promise.all([
     listarSalas(),
     paginarEquipos(filtros, pagina, TAMANO_PAGINA_EQUIPOS),
     candidatosDeLaPeticion(),
@@ -64,7 +80,9 @@ export default async function PanelSoporte({ searchParams }: Props) {
     actividadReciente(4),
     cookies(),
     incidenciasPendientes(5),
+    planDeMantenimiento(),
   ]);
+  const mantenimiento = contarMantenimientoPorEstado(plan);
   const equipos = resultado.filas;
   const candidatosSinVer = contarSinVer(
     candidatos.map((c) => c.codigo),
@@ -107,6 +125,9 @@ export default async function PanelSoporte({ searchParams }: Props) {
         <Link href="/soporte/salas" className={clasesBoton('secundario')}>
           Registrar sala
         </Link>
+        <Link href="/soporte/informe" className={`${clasesBoton('secundario')} gap-2`}>
+          <Icono nombre="informe" /> Informe del mes
+        </Link>
       </EncabezadoPagina>
 
       {/* Solo los candidatos nuevos: los ya revisados en /soporte/alertas no vuelven a avisar. */}
@@ -116,6 +137,15 @@ export default async function PanelSoporte({ searchParams }: Props) {
           baja por fallas repetidas.{' '}
           <Link href="/soporte/alertas" className="font-semibold underline underline-offset-4">
             Revisar alertas
+          </Link>
+        </Aviso>
+      ) : null}
+
+      {mantenimiento.vencido || mantenimiento.proximo ? (
+        <Aviso tipo={mantenimiento.vencido ? 'advertencia' : 'info'}>
+          {textoMantenimiento(mantenimiento.vencido, mantenimiento.proximo)}{' '}
+          <Link href="/soporte/mantenimiento" className="font-semibold underline underline-offset-4">
+            Ver mantenimiento
           </Link>
         </Aviso>
       ) : null}

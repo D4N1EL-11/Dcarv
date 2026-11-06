@@ -35,6 +35,17 @@ export async function exigirSoporte(): Promise<Sesion> {
   return vigente;
 }
 
+// Rutas que cualquier cuenta usa pero cuyo permiso depende del rol (comentarios, reportar con
+// prioridad): el rol se lee de la base, igual que en exigirSoporte.
+export async function exigirSesionVigente(): Promise<Sesion> {
+  const sesion = await exigirSesion();
+  const rol = await rolActual(sesion.id);
+  if (!rol) throw new ErrorDeNegocio('NO_AUTORIZADO');
+  const vigente = { ...sesion, rol };
+  fijarActor(vigente);
+  return vigente;
+}
+
 // Páginas solo de soporte (el middleware ya redirige; esto es la segunda barrera).
 export async function soloSoporte(): Promise<Sesion> {
   const sesion = await obtenerSesion();

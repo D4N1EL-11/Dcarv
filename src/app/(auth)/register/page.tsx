@@ -7,10 +7,10 @@ import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
 import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
 import { Icono } from '@/components/ui/Icono';
-import { DOMINIOS_SOPORTE, esRolValido, inicioPara, rolParaCorreo } from '@/lib/auth/permisos';
+import { DOMINIOS_SOPORTE, esRolValido, inicioPara, puedeSolicitarSoporte } from '@/lib/auth/permisos';
 import { rutaSegura } from '@/lib/auth/redireccion';
 import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { Input } from '@/components/ui/input';
 
 type Errores = { email?: string | undefined; password?: string | undefined; confirmacion?: string | undefined };
@@ -103,18 +103,19 @@ export default function RegisterPage() {
 
 	const coinciden = Boolean(confirmacion) && confirmacion === password;
 	const correoLimpio = email.trim();
-	// Se avisa antes de crearla qué tipo de cuenta será, según el dominio del correo.
+	// Se avisa antes de crearla qué tipo de cuenta será. El correo no se verifica, así que el dominio
+	// institucional no da permisos por sí solo: abre una solicitud que aprueba un administrador.
 	const tipoCuenta = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)
-		? rolParaCorreo(correoLimpio) === 'viewer'
-			? `Cuenta de reporte: podrás reportar fallas y seguir tus casos. Las cuentas de soporte usan un correo @${DOMINIOS_SOPORTE[0]}.`
-			: 'Cuenta de soporte: gestionarás salas, equipos, técnicos e incidencias.'
+		? puedeSolicitarSoporte(correoLimpio)
+			? 'Podrás reportar fallas desde ya. Tu acceso de soporte quedará pendiente hasta que un administrador lo apruebe.'
+			: `Cuenta de reporte: podrás reportar fallas y seguir tus casos. Las cuentas de soporte usan un correo @${DOMINIOS_SOPORTE[0]}.`
 		: undefined;
 
 	return (
 		<MarcoAcceso
 			etiqueta="Nueva cuenta"
 			titulo="Crear cuenta"
-			descripcion={`Con un correo @${DOMINIOS_SOPORTE[0]} entras al equipo de soporte; con cualquier otro, tu cuenta sirve para reportar fallas de los equipos y seguir tus casos.`}
+			descripcion={`Tu cuenta sirve para reportar fallas de los equipos y seguir tus casos. Con un correo @${DOMINIOS_SOPORTE[0]} además pides entrar al equipo de soporte; un administrador lo aprueba.`}
 			pie={
 				<>
 					¿Ya tienes cuenta?{' '}
@@ -193,9 +194,9 @@ export default function RegisterPage() {
 					</div>
 				) : null}
 
-				<Button type="submit" size="lg" className="mt-1 w-full" loading={enviando}>
+				<Boton type="submit" tamano="grande" className="mt-1 w-full" cargando={enviando}>
 					{enviando ? 'Creando cuenta…' : 'Crear cuenta'}
-				</Button>
+				</Boton>
 			</form>
 		</MarcoAcceso>
 	);

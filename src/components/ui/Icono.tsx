@@ -5,7 +5,9 @@ const TRAZOS = {
   incidencias: 'M12 3l9 16H3zM12 10v4M12 17h.01',
   salas: 'M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 10h.01M15 10h.01',
   tecnicos: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z',
-  alertas: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4',
+  // Alertas (candidatos a baja): una bandera. La campana es de los avisos.
+  alertas: 'M5 21V4M5 4h12l-2.5 4.5L17 13H5',
+  campana: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4',
   buscar: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3',
   exportar: 'M12 3v12M7 10l5 5 5-5M5 21h14',
   imprimir: 'M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z',
@@ -32,6 +34,14 @@ const TRAZOS = {
   candado: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
   ojoAlerta: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9v3M12 15h.01',
   camara: 'M3 8h4l2-3h6l2 3h4v12H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  comentario: 'M4 5h16v11H9l-5 4z',
+  enviar: 'M4 12l16-8-6 16-3-7z',
+  etiqueta: 'M3 12V4h8l10 10-8 8zM7.5 7.5h.01',
+  informe: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7M9 9h2',
+  mantenimiento: 'M9 3h6v3H9zM7 4.5H5V21h14V4.5h-2M9 13.5l2 2 4-4',
+  celular: 'M7 2h10v20H7zM11 18h2',
+  izquierda: 'M15 6l-6 6 6 6',
+  prioridad: 'M12 3v12M12 19h.01',
   qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2h-2',
 } as const;
 

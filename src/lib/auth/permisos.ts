@@ -7,7 +7,9 @@
 
 export type Rol = 'admin' | 'editor' | 'viewer';
 
-// Correos cuyo registro recibe el rol de soporte. Cualquier otro dominio queda como cuenta de reporte.
+// Dominios institucionales que pueden pedir el acceso de soporte. Como el correo no se verifica,
+// el dominio no da permisos por sí solo: toda cuenta nace como cuenta de reporte y, con uno de
+// estos dominios, queda con una solicitud que un administrador aprueba o rechaza.
 export const DOMINIOS_SOPORTE = ['usa.edu.co'] as const;
 
 export const INICIO_SOPORTE = '/soporte';
@@ -25,10 +27,13 @@ export function dominioDe(email: string): string {
   return email.trim().toLowerCase().split('@').pop() ?? '';
 }
 
-// Rol con el que nace una cuenta nueva. Solo el dominio exacto: "usa.edu.co.otro.com" no cuenta.
-export function rolParaCorreo(email: string): Rol {
-  return (DOMINIOS_SOPORTE as readonly string[]).includes(dominioDe(email)) ? 'editor' : 'viewer';
+// Solo el dominio exacto: "usa.edu.co.otro.com" o "x@otrousa.edu.co" no cuentan.
+export function puedeSolicitarSoporte(email: string): boolean {
+  return (DOMINIOS_SOPORTE as readonly string[]).includes(dominioDe(email));
 }
+
+// Toda cuenta nueva nace como cuenta de reporte; el rol de soporte lo da un administrador.
+export const ROL_INICIAL: Rol = 'viewer';
 
 export function nombreRol(rol: Rol): string {
   if (rol === 'admin') return 'Administrador';
@@ -41,19 +46,24 @@ export function inicioPara(rol: Rol): string {
 }
 
 // Páginas de /soporte que abre una cuenta de reporte.
-const PAGINAS_REPORTE = ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta'];
+const PAGINAS_REPORTE = ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta', '/soporte/avisos'];
+
+// La ficha de un caso (/soporte/incidencias/INC-0001): una cuenta de reporte solo abre las de sus
+// propios casos; eso lo comprueba la página, que conoce la incidencia. El listado general
+// (/soporte/incidencias) sigue siendo de soporte.
+const FICHA_CASO = /^\/soporte\/incidencias\/[^/]+$/;
 
 function coincide(ruta: string, base: string): boolean {
   return ruta === base || ruta.startsWith(`${base}/`);
 }
 
-// Páginas solo de administración (cambiar roles).
+// Páginas solo de administración (cambiar roles y aprobar solicitudes).
 const PAGINAS_ADMIN = ['/soporte/usuarios'];
 
 export function puedeVerPagina(rol: Rol, ruta: string): boolean {
   if (PAGINAS_ADMIN.some((base) => coincide(ruta, base))) return rol === 'admin';
   if (esSoporte(rol)) return true;
-  return PAGINAS_REPORTE.some((base) => coincide(ruta, base));
+  return PAGINAS_REPORTE.some((base) => coincide(ruta, base)) || FICHA_CASO.test(ruta);
 }
 
 // Lo que una cuenta de reporte puede pedir a la API. La propiedad de cada caso (solo los suyos)
@@ -65,6 +75,11 @@ const API_REPORTE: { metodo: string; patron: RegExp }[] = [
   { metodo: 'POST', patron: /^\/api\/soporte\/equipos\/[^/]+\/incidencias$/ },
   { metodo: 'GET', patron: /^\/api\/soporte\/incidencias\/[^/]+\/foto$/ },
   { metodo: 'POST', patron: /^\/api\/soporte\/incidencias\/[^/]+\/foto$/ },
+  { metodo: 'GET', patron: /^\/api\/soporte\/incidencias\/[^/]+\/comentarios$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/incidencias\/[^/]+\/comentarios$/ },
+  { metodo: 'GET', patron: /^\/api\/soporte\/avisos$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/avisos\/leidos$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/cuenta\/solicitud$/ },
 ];
 
 export function puedeUsarApi(rol: Rol, metodo: string, ruta: string): boolean {

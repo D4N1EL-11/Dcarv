@@ -9,6 +9,7 @@ import type { EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { diasHastaReasignacion } from '@/lib/reglas/tecnico';
 import { AccionesIncidencia } from './AccionesIncidencia';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
+import { EtiquetaCategoria, InsigniaPrioridad } from './InsigniasClasificacion';
 
 type Props = {
   incidencias: FilaIncidencia[];
@@ -65,8 +66,16 @@ function Detalle({
   return (
     <div className="grid min-w-0 flex-1 gap-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="font-semibold tabular-nums">{incidencia.numeroCaso}</span>
+        {/* La ficha del caso tiene la conversación, la foto y todo su recorrido. */}
+        <Link
+          href={`/soporte/incidencias/${encodeURIComponent(incidencia.numeroCaso)}`}
+          className="font-semibold tabular-nums text-texto underline-offset-4 hover:text-primario hover:underline"
+        >
+          {incidencia.numeroCaso}
+        </Link>
         <InsigniaEstadoIncidencia estado={incidencia.estado} />
+        {incidencia.prioridad !== 'media' ? <InsigniaPrioridad prioridad={incidencia.prioridad} /> : null}
+        <EtiquetaCategoria categoria={incidencia.categoria} />
         {mostrarEquipo && soloLectura ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primario">
             <Icono nombre="equipo" className="size-3.5" />
@@ -117,6 +126,13 @@ function Detalle({
             {textoRevision(incidencia.diaEstado, hoy)}
           </span>
         ) : null}
+        <Link
+          href={`/soporte/incidencias/${encodeURIComponent(incidencia.numeroCaso)}#conversacion`}
+          className="inline-flex items-center gap-1.5 text-primario underline-offset-4 hover:underline print:hidden"
+        >
+          <Icono nombre="comentario" className="size-3.5" />
+          {incidencia.comentarios ? plural(incidencia.comentarios, 'comentario', 'comentarios') : 'Ver conversación'}
+        </Link>
       </p>
     </div>
   );

@@ -38,12 +38,24 @@ Herramientas de trabajo:
 
 Cuentas y seguridad:
 
-- **Dos tipos de cuenta.** Los correos @usa.edu.co nacen como **soporte** (todo el módulo); cualquier otro, como **cuenta de reporte**: solo reporta fallas (con foto opcional) y sigue sus casos en "Mis reportes". No cambia estados, no da de baja ni registra salas, equipos o técnicos. Un administrador cambia roles en "Cuentas y roles" y el cambio quita permisos de inmediato.
+- **Dos tipos de cuenta.** Toda cuenta nueva nace como **cuenta de reporte**: reporta fallas (con foto opcional), sigue sus casos en "Mis reportes" y conversa con soporte en cada caso. No cambia estados, no da de baja ni registra salas, equipos o técnicos. Las cuentas **de soporte** gestionan todo el módulo.
+- **Solicitudes de acceso de soporte.** El correo no se verifica, así que un correo @usa.edu.co no da permisos por sí solo: abre una solicitud que un administrador aprueba o rechaza en "Cuentas y roles" (con aviso a la persona). También se pide desde "Mi cuenta". Al aprobar, cambiar o quitar un rol, la sesión de esa cuenta se renueva sola en la siguiente página.
 - **Etiquetas QR por equipo**, para imprimir y pegar: al escanearlas se abre el reporte con ese equipo ya elegido.
 - **Fotos de la falla** en un bucket privado de Supabase Storage; se ven con URLs firmadas de pocos minutos.
 - **Registro de cambios:** quién hizo qué y cuándo (reportes, estados, asignaciones, cierres, traslados, salas, técnicos y roles).
 - **Freno a la fuerza bruta:** tras 5 contraseñas incorrectas seguidas con el mismo correo, el login espera 15 minutos.
 - **Contraseñas:** mostrar u ocultar, aviso de Bloq Mayús y medidor de seguridad.
+- **Sin clave de reserva en producción:** sin `JWT_SECRET`, la app no firma ni acepta sesiones (antes usaba una clave escrita en el código, que es público).
+
+Seguimiento de casos (versión del 6 de noviembre de 2026):
+
+- **Ficha de cada caso** (`/soporte/incidencias/INC-0001`): la falla, su foto, detalles, el recorrido del caso en el registro de cambios y las acciones de soporte. Una cuenta de reporte abre solo las de sus casos.
+- **Conversación en cada caso** entre soporte y quien reportó ("se cambió la RAM", "falta el repuesto"). Al cerrar, soporte deja la **solución aplicada**, que queda como último comentario.
+- **Avisos (campana del menú)** sin depender del correo: a quien reportó cuando su caso se asigna, se reasigna, recibe un comentario o se cierra; a soporte cuando una cuenta de reporte reporta o comenta; a los administradores cuando llega una solicitud de soporte. Página "Avisos" con filtro de sin leer.
+- **Categoría y prioridad** de cada falla: quien reporta elige el tipo (hardware, software, red, periféricos u otro); soporte fija la prioridad (alta, media, baja). "Requiere atención" pone primero la alta; el listado filtra por ambas y el CSV las incluye.
+- **Mantenimiento preventivo** por sala: frecuencia (cada 7 a 365 días), registro de cada revisión con notas, estado Al día / Próximo / Vencido y aviso en el Panel.
+- **Informe mensual** para la coordinación: casos reportados y cerrados (con la variación frente al mes anterior), tiempo medio de cierre, porcentaje cerrado a tiempo, lo que más falla por categoría y por sala, trabajo de cada técnico, equipos con más fallas, bajas y mantenimientos. Se imprime o se guarda como PDF.
+- **App instalable (PWA)** en Android, iPhone y computador: manifiesto, íconos, accesos directos y página "Sin conexión". El service worker nunca guarda datos.
 
 Opcionales:
 
@@ -69,7 +81,7 @@ Complete en `.env.local` al menos estas variables (solo se listan los nombres; l
 |---|---|
 | `Dcarv_POSTGRES_URL_NON_POOLING` | Conexión directa a Postgres en local y en los scripts `db:*` |
 | `Dcarv_POSTGRES_URL` | Conexión por el pooler de transacciones en Vercel |
-| `JWT_SECRET` | Firma de la cookie de sesión del login |
+| `JWT_SECRET` | Firma de la cookie de sesión del login. Obligatoria en producción; en local, una clave propia distinta de la de Vercel |
 | `NEXT_PUBLIC_Dcarv_DCARVSUPABASE_URL`, `NEXT_PUBLIC_Dcarv_DCARVSUPABASE_ANON_KEY`, `Dcarv_SUPABASE_SERVICE_ROLE_KEY` | Login con Supabase Auth |
 | `CRON_SECRET` | Protege `/api/cron/reasignar` (solo en Vercel) |
 
@@ -94,7 +106,8 @@ npm run dev           # http://localhost:3000 → /soporte
 | `probar:flujo` | Recorre los 14 pasos del flujo completo contra la base y limpia al final |
 | `probar:opcionales` | Prueba técnicos, asignación, reasignación y alertas contra la base |
 | `probar:mejoras` | Prueba contra la base paginación, búsquedas, cierre con reactivación, gestión de salas y técnicos, traslado, gráfico, alertas, quién reportó, registro de cambios, fotos, intentos de acceso y roles (43 comprobaciones) |
-| `e2e` | Pruebas de extremo a extremo con Playwright (acceso y barrera de permisos, sin base de datos) |
+| `probar:nuevas` | Prueba contra la base solicitudes de soporte, comentarios, avisos, categoría y prioridad, mantenimiento e informe mensual |
+| `e2e` | Pruebas de extremo a extremo con Playwright (acceso, barrera de permisos y app instalable, sin base de datos) |
 | `lint` / `type-check` | ESLint y verificación de tipos |
 
 ## Estructura
@@ -102,11 +115,15 @@ npm run dev           # http://localhost:3000 → /soporte
 ```text
 src/
 ├── app/
-│   ├── soporte/              # pantallas: panel, salas, equipos, incidencias, técnicos, alertas, reportar, mis reportes, etiquetas, registro, cuentas
+│   ├── soporte/              # pantallas: panel, salas, equipos, incidencias y ficha del caso, técnicos, alertas, mantenimiento,
+│   │                         #   informe, avisos, reportar, mis reportes, etiquetas, registro, cuentas
+│   ├── offline/              # página "Sin conexión" de la app instalable
+│   ├── manifest.ts           # manifiesto de la app instalable (PWA)
 │   ├── api/soporte/          # API protegida con sesión
 │   └── api/cron/reasignar/   # reasignación automática (Vercel Cron)
 ├── components/
 │   ├── soporte/              # componentes del módulo
+│   ├── pwa/                  # registro del service worker y opción "Instalar la app"
 │   └── ui/                   # botones, campos, insignias, modal… (sin librerías externas)
 └── lib/
     ├── reglas/               # reglas de negocio puras (se prueban con Vitest)
@@ -116,9 +133,10 @@ src/
     ├── validacion/           # esquemas Zod
     ├── http/                 # formato de respuestas y errores de la API
     └── auth/                 # sesión, permisos por rol (permisos.ts) y contexto de la petición
-supabase/migrations/          # SQL de las tablas, la vista y la seguridad
+supabase/migrations/          # SQL de las tablas, la vista y la seguridad (M1 a M11)
+public/                       # service worker (sw.js) e íconos de la app instalable
 scripts/                      # migrar, verificar, limpiar, demo y pruebas de flujo
-tests/reglas/                 # pruebas T-01 a T-21 y de las mejoras (npm test: 129 en total)
+tests/reglas/                 # pruebas T-01 a T-21 y de las mejoras (npm test: 150 en total)
 e2e/                          # pruebas de extremo a extremo (Playwright)
 doc/                          # plan, prompts, estado, aceptación y checkpoints
 ```
@@ -132,7 +150,8 @@ El plan funcional original guardaba todo en `datos.json` con Flask. Vercel tiene
 - Nunca escriba credenciales ni valores de variables en archivos del repositorio. `.env.local` está en `.gitignore`.
 - Las tablas tienen RLS activo sin políticas y permisos revocados para `anon` y `authenticated`: la clave pública de Supabase no puede leerlas. Todo el acceso pasa por el servidor.
 - Toda ruta `/api/soporte/*` exige sesión; sin ella responde 401. Los permisos por rol se comprueban en el middleware y otra vez en cada ruta (`exigirSoporte`, que lee el rol vigente de la base); una cuenta de reporte recibe 403.
-- Sin correo verificado, cualquiera puede registrarse con una dirección @usa.edu.co inventada: revise "Cuentas y roles" y el registro de cambios.
+- Sin correo verificado, cualquiera puede registrarse con una dirección @usa.edu.co inventada; por eso esa dirección solo abre una solicitud, y los permisos de soporte los da un administrador después de revisarla.
+- Los avisos solo enlazan dentro del módulo (restricción en la base) y cada cuenta solo lee y marca los suyos. Una cuenta de reporte que pide la conversación o la ficha de un caso ajeno recibe "no existe".
 - El SQL siempre va parametrizado y los errores internos no se muestran al usuario.
 - Encabezados HTTP de seguridad en todas las respuestas: `X-Frame-Options: DENY` y `frame-ancestors 'none'` (sin iframes ajenos), `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS; sin `X-Powered-By`.
 - El regreso tras iniciar sesión solo acepta rutas internas de `/soporte` (sin redirecciones abiertas).

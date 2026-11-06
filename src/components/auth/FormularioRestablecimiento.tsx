@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { MedidorContrasena } from '@/components/auth/MedidorContrasena';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { LONGITUD_MINIMA_CONTRASENA } from '@/lib/reglas/contrasena';
 
 export function FormularioRestablecimiento({ token }: { token: string }) {
@@ -67,9 +67,9 @@ export function FormularioRestablecimiento({ token }: { token: string }) {
 			{error ? (
 				<p role="alert" className="rounded-lg border border-baja/30 bg-baja/10 px-3.5 py-2.5 text-sm text-baja">{error}</p>
 			) : null}
-			<Button type="submit" size="lg" className="w-full" loading={procesando}>
+			<Boton type="submit" tamano="grande" className="w-full" cargando={procesando}>
 				{procesando ? 'Guardando…' : 'Guardar contraseña'}
-			</Button>
+			</Boton>
 		</form>
 	);
 }

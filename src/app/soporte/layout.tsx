@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { NavegacionSoporte } from '@/components/soporte/NavegacionSoporte';
+import { SincronizarSesion } from '@/components/soporte/SincronizarSesion';
 import { Suspense } from 'react';
 import { ProveedorAvisos } from '@/components/ui/Avisos';
 import { BarraProgreso } from '@/components/ui/BarraProgreso';
@@ -11,6 +12,7 @@ import { COOKIE_ALERTAS_VISTAS, leerVistos } from '@/lib/alertasVistas';
 import { esSoporte } from '@/lib/auth/permisos';
 import { obtenerSesion } from '@/lib/auth/sesion';
 import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
+import { contarSinLeer, rolActual } from '@/lib/dataService';
 import { formatearFecha } from '@/lib/formato';
 import { hoyBogota } from '@/lib/reglas/fechas';
 
@@ -29,6 +31,26 @@ async function codigosCandidatos(): Promise<string[]> {
   } catch (error) {
     console.error(error);
     return [];
+  }
+}
+
+// Igual que el contador de alertas: si la consulta falla, la página sigue.
+async function avisosSinLeer(usuarioId: string): Promise<number> {
+  try {
+    return await contarSinLeer(usuarioId);
+  } catch (error) {
+    console.error(error);
+    return 0;
+  }
+}
+
+// ¿Cambió el rol desde que se firmó la sesión? (aprobación de soporte, cambio de rol, cuenta borrada)
+async function rolCambio(usuarioId: string, rolSesion: string): Promise<boolean> {
+  try {
+    return (await rolActual(usuarioId)) !== rolSesion;
+  } catch (error) {
+    console.error(error);
+    return false;
   }
 }
 
@@ -61,7 +83,12 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
   if (!sesion) redirect('/login');
   const soporte = esSoporte(sesion.rol);
   // Las alertas son de soporte: una cuenta de reporte no las consulta.
-  const [candidatos, almacen] = await Promise.all([soporte ? codigosCandidatos() : Promise.resolve([]), cookies()]);
+  const [candidatos, almacen, sinLeer, desactualizada] = await Promise.all([
+    soporte ? codigosCandidatos() : Promise.resolve([]),
+    cookies(),
+    avisosSinLeer(sesion.id),
+    rolCambio(sesion.id, sesion.rol),
+  ]);
   // Las alertas ya vistas se leen aquí para que el número salga bien desde el primer dibujo.
   const vistos = [...leerVistos(almacen.get(COOKIE_ALERTAS_VISTAS)?.value)];
   return (
@@ -77,7 +104,14 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
         <Suspense fallback={null}>
           <BarraProgreso />
         </Suspense>
-        <NavegacionSoporte email={sesion.email} rol={sesion.rol} candidatos={candidatos} vistos={vistos} />
+        {desactualizada ? <SincronizarSesion /> : null}
+        <NavegacionSoporte
+          email={sesion.email}
+          rol={sesion.rol}
+          candidatos={candidatos}
+          vistos={vistos}
+          avisosSinLeer={sinLeer}
+        />
         <main
           id="contenido"
           tabIndex={-1}

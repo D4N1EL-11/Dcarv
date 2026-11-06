@@ -34,8 +34,20 @@ async function main() {
       eventos = await cliente.query(
         `DELETE FROM eventos
           WHERE equipo_codigo IN (SELECT codigo FROM equipos WHERE sala_id IN (${SALAS}))
-             OR (split_part(accion, '_', 1) IN ('sala', 'tecnico') AND detalle ILIKE ANY($2))`,
+             OR (split_part(accion, '_', 1) IN ('sala', 'tecnico', 'mantenimiento') AND detalle ILIKE ANY($2))`,
         [prefijos, prefijos.map((p) => `%${p}`)],
+      );
+    }
+    // Avisos (M9) que apuntan a casos de esos equipos (la campana de soporte y de quien reportó).
+    // Los comentarios (M8) y los mantenimientos (M11) se borran solos con su caso y su sala.
+    const hayAvisos = await cliente.query("SELECT to_regclass('public.avisos') IS NOT NULL AS existe");
+    if (hayAvisos.rows[0].existe) {
+      await cliente.query(
+        `DELETE FROM avisos
+          WHERE split_part(split_part(enlace, '/soporte/incidencias/', 2), '#', 1) IN (
+            SELECT numero_caso FROM incidencias WHERE equipo_id IN (${EQUIPOS})
+          )`,
+        [prefijos],
       );
     }
     // Intentos de acceso de las cuentas de prueba (M5).

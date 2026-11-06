@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useAvisos } from '@/components/ui/Avisos';
 import { Boton } from '@/components/ui/Boton';
+import { CampoTexto } from '@/components/ui/Campo';
 import { Modal } from '@/components/ui/Modal';
 import { Selector } from '@/components/ui/Selector';
 import { useRefrescar } from '@/hooks/use-refrescar';
 import { llamarApi } from '@/lib/clienteApi';
+import { LARGO_MAXIMO_COMENTARIO } from '@/lib/config/soporte';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
 import {
   puedeAsignarse,
@@ -41,6 +43,8 @@ export function AccionesIncidencia({
   const [confirmandoCierre, setConfirmandoCierre] = useState(false);
   const ofrecerReactivar = puedeReactivarseAlCerrar(estadoEquipo, otrasPendientes);
   const [reactivar, setReactivar] = useState(ofrecerReactivar);
+  // Nota de solución: queda como último comentario del caso y le llega a quien lo reportó.
+  const [nota, setNota] = useState('');
   const ocupado = cargando || refrescando;
 
   async function ejecutar(accion: 'cerrar' | 'asignar', cuerpo?: unknown) {
@@ -52,11 +56,13 @@ export function AccionesIncidencia({
       cuerpo,
     );
     setCargando(false);
-    setConfirmandoCierre(false);
     if (!respuesta.ok) {
+      setConfirmandoCierre(false);
       setError(respuesta.mensaje);
       return;
     }
+    setConfirmandoCierre(false);
+    setNota('');
     if (accion === 'asignar') {
       const nombre = tecnicos.find((t) => t.id === tecnicoId)?.nombre ?? 'el técnico';
       mostrar('exito', `${numeroCaso} asignada a ${nombre}.`);
@@ -122,6 +128,17 @@ export function AccionesIncidencia({
             La incidencia quedará cerrada y no se podrá reabrir. Si la falla vuelve, reporte una
             nueva incidencia.
           </p>
+          <div className="mt-4">
+            <CampoTexto
+              etiqueta="Solución aplicada (opcional)"
+              placeholder="Ej.: Se cambió la fuente de poder; el equipo enciende normal."
+              rows={3}
+              maxLength={LARGO_MAXIMO_COMENTARIO}
+              value={nota}
+              onChange={(evento) => setNota(evento.target.value)}
+            />
+            <p className="mt-1 text-xs text-texto-suave">Quien reportó la falla la verá en su caso.</p>
+          </div>
           {ofrecerReactivar ? (
             <label className="mt-4 flex items-start gap-3 text-sm">
               <input
@@ -142,7 +159,12 @@ export function AccionesIncidencia({
             </Boton>
             <Boton
               cargando={cargando}
-              onClick={() => ejecutar('cerrar', ofrecerReactivar && reactivar ? { equipoFuncional: true } : undefined)}
+              onClick={() =>
+                ejecutar('cerrar', {
+                  ...(ofrecerReactivar && reactivar ? { equipoFuncional: true } : {}),
+                  ...(nota.trim() ? { nota: nota.trim() } : {}),
+                })
+              }
             >
               Cerrar incidencia
             </Boton>

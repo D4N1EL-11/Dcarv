@@ -128,6 +128,18 @@ export function textoEvento(evento: EventoParaTexto): string {
       return `desactivó al técnico ${detalle}`;
     case 'rol_cambiado':
       return `cambió el rol de ${detalle}`;
+    case 'incidencia_clasificada':
+      return `clasificó ${caso ?? 'una incidencia'}${en}: ${detalle}`;
+    case 'solicitud_soporte':
+      return `pidió el acceso de soporte para ${detalle}`;
+    case 'solicitud_aprobada':
+      return `aprobó el acceso de soporte de ${detalle}`;
+    case 'solicitud_rechazada':
+      return `rechazó el acceso de soporte de ${detalle}`;
+    case 'mantenimiento_programado':
+      return `programó el mantenimiento de ${detalle}`;
+    case 'mantenimiento_realizado':
+      return `registró el mantenimiento de ${detalle}`;
     default:
       return detalle || accion;
   }

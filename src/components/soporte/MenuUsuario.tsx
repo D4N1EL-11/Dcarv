@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { OpcionInstalar } from '@/components/pwa/OpcionInstalar';
 import { Icono } from '@/components/ui/Icono';
 import { esSoporte, nombreRol, type Rol } from '@/lib/auth/permisos';
 
-const CLASES_OPCION =
+export const CLASES_OPCION =
   'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-texto transition hover:bg-primario-suave';
 
 export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
@@ -70,6 +71,14 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
             <Link role="menuitem" href="/soporte/cuenta" className={CLASES_OPCION}>
               <Icono nombre="llave" className="size-4 text-texto-suave" /> Mi cuenta
             </Link>
+            <Link role="menuitem" href="/soporte/avisos" className={CLASES_OPCION}>
+              <Icono nombre="campana" className="size-4 text-texto-suave" /> Avisos
+            </Link>
+            {esSoporte(rol) ? (
+              <Link role="menuitem" href="/soporte/informe" className={CLASES_OPCION}>
+                <Icono nombre="informe" className="size-4 text-texto-suave" /> Informe mensual
+              </Link>
+            ) : null}
             {esSoporte(rol) ? (
               <Link role="menuitem" href="/soporte/actividad" className={CLASES_OPCION}>
                 <Icono nombre="reloj" className="size-4 text-texto-suave" /> Registro de cambios
@@ -83,6 +92,7 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
             <Link role="menuitem" href="/soporte/ayuda" className={CLASES_OPCION}>
               <Icono nombre="ayuda" className="size-4 text-texto-suave" /> Ayuda y reglas
             </Link>
+            <OpcionInstalar className={CLASES_OPCION} />
             <button role="menuitem" type="button" onClick={cerrarSesion} disabled={saliendo} className={`${CLASES_OPCION} text-baja`}>
               <Icono nombre="salir" className="size-4" /> {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
             </button>

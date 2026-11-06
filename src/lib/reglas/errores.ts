@@ -9,6 +9,8 @@ export type CodigoError =
   | 'TIENE_DEPENDENCIAS'
   | 'INCIDENCIA_NO_ENCONTRADA'
   | 'INCIDENCIA_NO_ASIGNABLE'
+  | 'INCIDENCIA_CERRADA'
+  | 'SIN_SOLICITUD'
   | 'TECNICO_DUPLICADO'
   | 'TECNICO_NO_ENCONTRADO'
   | 'SIN_PERMISO'
@@ -28,6 +30,8 @@ export const MENSAJES: Record<CodigoError, string> = {
   TIENE_DEPENDENCIAS: 'No se puede eliminar: tiene equipos o incidencias asociadas.',
   INCIDENCIA_NO_ENCONTRADA: 'La incidencia no existe.',
   INCIDENCIA_NO_ASIGNABLE: 'Solo se puede asignar una incidencia que esté abierta.',
+  INCIDENCIA_CERRADA: 'El caso está cerrado. Si la falla vuelve, reporte una nueva incidencia.',
+  SIN_SOLICITUD: 'La cuenta no tiene una solicitud de soporte pendiente.',
   TECNICO_DUPLICADO: 'Ya existe un técnico con ese nombre.',
   TECNICO_NO_ENCONTRADO: 'El técnico no existe.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
@@ -46,6 +50,8 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   TIENE_DEPENDENCIAS: 409,
   INCIDENCIA_NO_ENCONTRADA: 404,
   INCIDENCIA_NO_ASIGNABLE: 409,
+  INCIDENCIA_CERRADA: 409,
+  SIN_SOLICITUD: 409,
   TECNICO_DUPLICADO: 409,
   TECNICO_NO_ENCONTRADO: 404,
   ERROR_INTERNO: 500,

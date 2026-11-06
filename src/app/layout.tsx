@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import './globals.css';
-import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { RegistrarServiceWorker } from '@/components/pwa/RegistrarServiceWorker';
 
 const fuenteTitulos = Cormorant_Garamond({
   subsets: ['latin'],
@@ -14,16 +14,23 @@ const fuenteTexto = Inter({ subsets: ['latin'], variable: '--font-inter', displa
 
 export const metadata: Metadata = {
   title: 'Soporte de Salas',
+  applicationName: 'Soporte de Salas',
   description:
     'Control de calidad y soporte técnico de las salas de cómputo: inventario de equipos, incidencias, estados e historial.',
+  // Instalada en el celular (PWA): nombre corto y barra de estado oscura en iPhone.
+  appleWebApp: { capable: true, title: 'Soporte', statusBarStyle: 'black-translucent' },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = { themeColor: '#111214', colorScheme: 'dark' };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${fuenteTitulos.variable} ${fuenteTexto.variable}`} suppressHydrationWarning>
-      <body><ThemeProvider>{children}</ThemeProvider></body>
+    <html lang="es" className={`${fuenteTitulos.variable} ${fuenteTexto.variable}`}>
+      <body>
+        {children}
+        <RegistrarServiceWorker />
+      </body>
     </html>
   );
 }

@@ -60,6 +60,7 @@ export default async function PaginaReportar({ searchParams }: Props) {
             equipos={equipos.map(({ codigo, salaId, sala, estado }) => ({ codigo, salaId, sala, estado }))}
             pendientes={porEquipo}
             equipoInicial={pedido}
+            soporte={Boolean(sesion && esSoporte(sesion.rol))}
           />
         </div>
       ) : (

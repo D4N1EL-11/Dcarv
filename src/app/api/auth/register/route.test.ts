@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { activarCuenta, buscarCuentaPendiente, fijarRol, iniciarSesion } from '@/lib/auth/acceso';
+import { prepararCuentaNueva } from '@/lib/dataService';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { POST } from './route';
 
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseAdminClient: vi.fn() }));
+// La solicitud de soporte se guarda en la base: aquí solo importa que se pida para la cuenta correcta.
+vi.mock('@/lib/dataService', () => ({ prepararCuentaNueva: vi.fn() }));
 vi.mock('@/lib/auth/acceso', async (original) => ({
 	...(await original<typeof import('@/lib/auth/acceso')>()),
 	activarCuenta: vi.fn(),
@@ -34,6 +37,7 @@ describe('POST /api/auth/register', () => {
 		vi.mocked(buscarCuentaPendiente).mockResolvedValue(null);
 		vi.mocked(activarCuenta).mockResolvedValue();
 		vi.mocked(fijarRol).mockResolvedValue();
+		vi.mocked(prepararCuentaNueva).mockResolvedValue({ solicitud: false });
 	});
 
 	it('crea la cuenta ya confirmada, sin correo, e inicia sesión', async () => {
@@ -42,7 +46,7 @@ describe('POST /api/auth/register', () => {
 		expect(response.status).toBe(201);
 		expect(createUser).toHaveBeenCalledWith({ email: 'nuevo@example.com', password: 'clave-segura', email_confirm: true });
 		expect(iniciarSesion).toHaveBeenCalledWith('nuevo@example.com', 'clave-segura');
-		expect((await response.json()).data).toEqual({ ...usuario, sesionIniciada: true, rol: 'viewer' });
+		expect((await response.json()).data).toEqual({ ...usuario, sesionIniciada: true, rol: 'viewer', solicitud: false });
 		expect(fijarRol).toHaveBeenCalledWith('user-1', 'viewer');
 		expect(response.cookies.get('dcarv_session')?.value).toBe('token-firmado');
 	});
@@ -59,12 +63,17 @@ describe('POST /api/auth/register', () => {
 		expect(iniciarSesion).toHaveBeenCalledWith('nuevo@example.com', 'otra-clave');
 	});
 
-	it('un correo @usa.edu.co nace como cuenta de soporte; los demás, de reporte', async () => {
+	it('un correo @usa.edu.co no da permisos de soporte: nace de reporte con una solicitud pendiente', async () => {
+		vi.mocked(prepararCuentaNueva).mockResolvedValue({ solicitud: true });
 		const response = await POST(crearRequest({ email: 'Ana.Perez@USA.edu.co', password: 'clave-segura' }));
 
 		expect(response.status).toBe(201);
-		expect(fijarRol).toHaveBeenCalledWith('user-1', 'editor');
-		expect((await response.json()).data.rol).toBe('editor');
+		expect(fijarRol).toHaveBeenCalledWith('user-1', 'viewer');
+		expect(fijarRol).not.toHaveBeenCalledWith('user-1', 'editor');
+		expect(prepararCuentaNueva).toHaveBeenCalledWith('user-1');
+		const { data } = await response.json();
+		expect(data.rol).toBe('viewer');
+		expect(data.solicitud).toBe(true);
 	});
 
 	it('no toca una cuenta ya activa con el mismo correo', async () => {
@@ -91,7 +100,7 @@ describe('POST /api/auth/register', () => {
 		const response = await POST(crearRequest({ email: 'nuevo@example.com', password: 'clave-segura' }));
 
 		expect(response.status).toBe(201);
-		expect((await response.json()).data).toEqual({ sesionIniciada: false, rol: 'viewer' });
+		expect((await response.json()).data).toEqual({ sesionIniciada: false, rol: 'viewer', solicitud: false });
 		expect(response.cookies.get('dcarv_session')).toBeUndefined();
 	});
 });

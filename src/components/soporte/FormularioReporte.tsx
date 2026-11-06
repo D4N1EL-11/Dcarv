@@ -9,11 +9,19 @@ import { CampoTexto } from '@/components/ui/Campo';
 import { Icono } from '@/components/ui/Icono';
 import { Selector } from '@/components/ui/Selector';
 import { llamarApi } from '@/lib/clienteApi';
+import { PRIORIDADES_INCIDENCIA } from '@/lib/config/soporte';
 import type { ResultadoIncidencia } from '@/lib/datos/tipos';
 import { subirFotoIncidencia } from '@/lib/fotoCliente';
 import type { EstadoEquipo } from '@/lib/reglas/equipo';
+import {
+  AYUDA_PRIORIDAD,
+  ETIQUETA_PRIORIDAD,
+  type CategoriaIncidencia,
+  type PrioridadIncidencia,
+} from '@/lib/reglas/clasificacion';
 import { ETIQUETA_INCIDENCIA, type EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { esquemaIncidencia } from '@/lib/validacion/esquemas';
+import { SelectorCategoria } from './SelectorCategoria';
 import { SelectorFoto } from './SelectorFoto';
 
 export type EquipoParaReporte = { codigo: string; salaId: string; sala: string; estado: EstadoEquipo };
@@ -24,13 +32,15 @@ type Props = {
   equipos: EquipoParaReporte[];
   pendientes: Record<string, CasoPendiente[]>;
   equipoInicial: string | null;
+  // Soporte también fija la prioridad; una cuenta de reporte no la elige.
+  soporte?: boolean;
 };
 
 type Enviado = { numeroCaso: string; codigo: string; estadoEquipo: EstadoEquipo; avisoFoto: string | null };
 
 const MAXIMO = 1000;
 
-export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }: Props) {
+export function FormularioReporte({ salas, equipos, pendientes, equipoInicial, soporte = false }: Props) {
   const router = useRouter();
   const inicial = equipos.find((e) => e.codigo === equipoInicial) ?? null;
   // Desde el QR de un equipo, el equipo ya viene elegido; se puede cambiar.
@@ -39,6 +49,8 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
   const [codigo, setCodigo] = useState(inicial?.codigo ?? '');
   const [descripcion, setDescripcion] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
+  const [categoria, setCategoria] = useState<CategoriaIncidencia | null>(null);
+  const [prioridad, setPrioridad] = useState<PrioridadIncidencia>('media');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState<Enviado | null>(null);
@@ -62,12 +74,16 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
       setError(problema);
       return;
     }
+    if (!categoria) {
+      setError('Elija el tipo de falla (si no sabe, elija "Otro").');
+      return;
+    }
     setError('');
     setEnviando(true);
     const respuesta = await llamarApi<ResultadoIncidencia>(
       `/api/soporte/equipos/${encodeURIComponent(equipo.codigo)}/incidencias`,
       'POST',
-      { descripcion },
+      { descripcion, categoria, ...(soporte ? { prioridad } : {}) },
     );
     if (!respuesta.ok) {
       setEnviando(false);
@@ -91,6 +107,8 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
     setEnviado(null);
     setDescripcion('');
     setFoto(null);
+    setCategoria(null);
+    setPrioridad('media');
     setFijo(false);
     setCodigo('');
   }
@@ -106,7 +124,8 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
             <h2 className="text-3xl font-medium">Reporte enviado</h2>
             <p className="text-sm text-texto-suave">
               Su caso es <strong className="font-semibold text-texto">{enviado.numeroCaso}</strong> para el equipo{' '}
-              <strong className="font-semibold text-texto">{enviado.codigo}</strong>. Soporte ya lo ve en su lista.
+              <strong className="font-semibold text-texto">{enviado.codigo}</strong>. Soporte ya lo ve en su lista. Le
+              llegará un aviso a la campana cuando un técnico lo tome y cuando se cierre.
             </p>
             <p className="text-sm text-texto-suave">
               {enviado.estadoEquipo === 'dado_de_baja'
@@ -117,8 +136,11 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
         </div>
         {enviado.avisoFoto ? <Aviso tipo="advertencia">{enviado.avisoFoto}</Aviso> : null}
         <div className="flex flex-wrap gap-3">
-          <Link href="/soporte/mis-reportes" className={clasesBoton()}>
-            Ver mis reportes
+          <Link href={`/soporte/incidencias/${encodeURIComponent(enviado.numeroCaso)}`} className={clasesBoton()}>
+            Ver el caso
+          </Link>
+          <Link href="/soporte/mis-reportes" className={clasesBoton('secundario')}>
+            Mis reportes
           </Link>
           <Boton variante="secundario" onClick={otroReporte}>
             Reportar otra falla
@@ -199,6 +221,30 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial }:
           {descripcion.length}/{MAXIMO}
         </p>
         <SelectorFoto archivo={foto} alCambiar={setFoto} deshabilitado={enviando} />
+      </fieldset>
+
+      <fieldset className="grid gap-2">
+        <legend className="mb-1 text-sm font-medium text-texto">3. ¿Qué tipo de falla es?</legend>
+        <SelectorCategoria
+          valor={categoria}
+          deshabilitado={enviando}
+          alCambiar={(valor) => {
+            setCategoria(valor);
+            setError('');
+          }}
+        />
+        {soporte ? (
+          <div className="mt-2 grid gap-1 sm:max-w-xs">
+            <Selector
+              etiqueta="Prioridad"
+              value={prioridad}
+              disabled={enviando}
+              onChange={(evento) => setPrioridad(evento.target.value as PrioridadIncidencia)}
+              opciones={PRIORIDADES_INCIDENCIA.map((p) => ({ valor: p, texto: ETIQUETA_PRIORIDAD[p] }))}
+            />
+            <p className="text-xs text-texto-suave">{AYUDA_PRIORIDAD[prioridad]}</p>
+          </div>
+        ) : null}
       </fieldset>
 
       {error ? <Aviso tipo="error">{error}</Aviso> : null}

@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { esRolValido, puedeUsarApi, puedeVerPagina, redireccionSinPermiso, type Rol } from '@/lib/auth/permisos';
+import { ErrorConfiguracionSesion, secretoSesion } from '@/lib/auth/secreto';
 import { MENSAJES, type CodigoError } from '@/lib/reglas/errores';
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? 'development-only-secret-change-me');
 
 function errorApi(codigo: CodigoError, estado: number) {
   return NextResponse.json(
@@ -39,13 +38,21 @@ export async function middleware(request: NextRequest) {
   if (!token) return rechazar(request);
   let rol: Rol;
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secretoSesion(), { algorithms: ['HS256'] });
     // Un token sin rol válido se trata como cuenta de reporte: nunca se concede de más.
     rol = esRolValido(payload.role) ? payload.role : 'viewer';
-  } catch {
+  } catch (error) {
+    // Sin JWT_SECRET en producción no se acepta ninguna sesión (lib/auth/secreto.ts).
+    if (error instanceof ErrorConfiguracionSesion) {
+      console.error(error.message);
+      return new NextResponse('Servicio no disponible: configuración de sesiones incompleta.', {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
     return rechazar(request);
   }
   return autorizar(request, rol);
 }
 
-export const config = { matcher: ['/dashboard/:path*', '/soporte/:path*', '/api/soporte/:path*'] };
+export const config = { matcher: ['/soporte/:path*', '/api/soporte/:path*'] };

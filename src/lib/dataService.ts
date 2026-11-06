@@ -16,22 +16,46 @@ export { buscarGlobal } from '@/lib/datos/busqueda';
 export type { ResultadosBusqueda } from '@/lib/datos/busqueda';
 export {
 	cerrarIncidencia,
+	clasificarIncidencia,
 	contarIncidenciasPorEstado,
 	datosDeFoto,
 	guardarFoto,
 	historialDeEquipo,
 	incidenciasPendientes,
 	listarIncidencias,
+	obtenerIncidencia,
 	paginarIncidencias,
 	reportarIncidencia,
 	resumenCierres,
 } from '@/lib/datos/incidencias';
-export type { DatosFoto, FiltrosIncidencias, ResumenCierres } from '@/lib/datos/incidencias';
-export { actoresDeEventos, eventosDeEquipo, eventosRecientes } from '@/lib/datos/eventos';
+export type { DatosFoto, FiltrosIncidencias, OpcionesReporte, ResumenCierres } from '@/lib/datos/incidencias';
+export { agregarComentario, listarComentarios } from '@/lib/datos/comentarios';
+export type { Autor, FilaComentario } from '@/lib/datos/comentarios';
+export { avisosDe, contarSinLeer, marcarAvisosLeidos } from '@/lib/datos/avisos';
+export type { FilaAviso, ResumenAvisos } from '@/lib/datos/avisos';
+export {
+	contarPorEstado as contarMantenimientoPorEstado,
+	historialMantenimientos,
+	planDeMantenimiento,
+	programarMantenimiento,
+	registrarMantenimiento,
+} from '@/lib/datos/mantenimiento';
+export type { ConteoMantenimiento, FilaMantenimiento, FilaPlanMantenimiento } from '@/lib/datos/mantenimiento';
+export { informeMensual, primerMesConDatos } from '@/lib/datos/informe';
+export type { FilaBajaInforme, FilaEquipoInforme, FilaSalaInforme, FilaTecnicoInforme, Informe, ResumenMes } from '@/lib/datos/informe';
+export { actoresDeEventos, eventosDeCaso, eventosDeEquipo, eventosRecientes } from '@/lib/datos/eventos';
 export type { AccionEvento, FiltrosEventos, FilaEvento } from '@/lib/datos/eventos';
 export { intentosRecientes, registrarIntento } from '@/lib/datos/accesos';
-export { cambiarRol, listarUsuarios, rolActual } from '@/lib/datos/usuarios';
-export type { FilaUsuario } from '@/lib/datos/usuarios';
+export {
+	cambiarRol,
+	decidirSolicitud,
+	estadoDeCuenta,
+	listarUsuarios,
+	prepararCuentaNueva,
+	rolActual,
+	solicitarSoporte,
+} from '@/lib/datos/usuarios';
+export type { EstadoCuenta, FilaUsuario } from '@/lib/datos/usuarios';
 export {
 	asignarTecnico,
 	cambiarActividadTecnico,
@@ -43,16 +67,19 @@ export {
 	renombrarTecnico,
 } from '@/lib/datos/tecnicos';
 export type {
+	CategoriaIncidencia,
 	ConteoIncidencias,
 	DetalleEquipo,
 	EstadoEquipo,
 	EstadoIncidencia,
+	FichaCaso,
 	FilaCandidato,
 	FilaEquipo,
 	FilaIncidencia,
 	FilaSala,
 	FilaTecnico,
 	Pagina,
+	PrioridadIncidencia,
 	ResultadoActividad,
 	ResultadoCierre,
 	ResultadoIncidencia,

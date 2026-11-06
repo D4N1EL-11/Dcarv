@@ -5,7 +5,7 @@ import { obtenerUrlBase } from '@/lib/urlBase';
 export default function robots(): MetadataRoute.Robots {
   const base = obtenerUrlBase();
   return {
-    rules: { userAgent: '*', allow: ['/login', '/register'], disallow: ['/soporte', '/api/', '/dashboard/'] },
+    rules: { userAgent: '*', allow: ['/login', '/register'], disallow: ['/soporte', '/api/', '/offline'] },
     sitemap: `${base}/sitemap.xml`,
   };
 }

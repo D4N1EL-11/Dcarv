@@ -9,7 +9,12 @@ import { Icono } from '@/components/ui/Icono';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Paginacion } from '@/components/ui/Paginacion';
 import { Selector } from '@/components/ui/Selector';
-import { ESTADOS_INCIDENCIA, TAMANO_PAGINA_INCIDENCIAS } from '@/lib/config/soporte';
+import {
+  CATEGORIAS_INCIDENCIA,
+  ESTADOS_INCIDENCIA,
+  PRIORIDADES_INCIDENCIA,
+  TAMANO_PAGINA_INCIDENCIAS,
+} from '@/lib/config/soporte';
 import { tecnicosDeLaPeticion } from '@/lib/consultasDePagina';
 import {
   contarIncidenciasPorEstado,
@@ -20,6 +25,7 @@ import {
   type FiltrosIncidencias,
 } from '@/lib/dataService';
 import { etiquetaEstadoIncidencia, plural } from '@/lib/formato';
+import { ETIQUETA_CATEGORIA, ETIQUETA_PRIORIDAD } from '@/lib/reglas/clasificacion';
 import { normalizarPagina } from '@/lib/reglas/paginacion';
 import { esquemaFiltrosIncidencias } from '@/lib/validacion/esquemas';
 import { soloSoporte } from '@/lib/auth/sesion';
@@ -34,7 +40,7 @@ function enlace(filtros: FiltrosIncidencias, cambios: Partial<FiltrosIncidencias
   const { pagina = 1, ...resto } = cambios;
   const valores = { ...filtros, ...resto };
   const consulta = new URLSearchParams();
-  for (const nombre of ['estado', 'busqueda', 'equipoCodigo', 'tecnicoId', 'salaId'] as const) {
+  for (const nombre of ['estado', 'busqueda', 'equipoCodigo', 'tecnicoId', 'salaId', 'categoria', 'prioridad'] as const) {
     const valor = valores[nombre];
     if (valor) consulta.set(nombre, valor);
   }
@@ -95,6 +101,8 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
     busqueda: filtros.busqueda,
     tecnicoId: filtros.tecnicoId,
     salaId: filtros.salaId,
+    categoria: filtros.categoria,
+    prioridad: filtros.prioridad,
   };
   const [resultado, tecnicos, conteo, salas, resumen] = await Promise.all([
     paginarIncidencias(filtros, pagina, TAMANO_PAGINA_INCIDENCIAS),
@@ -131,7 +139,7 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
       <form
         method="get"
         action="/soporte/incidencias"
-        className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+        className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto]"
       >
         {filtros.estado ? <input type="hidden" name="estado" value={filtros.estado} /> : null}
         {filtros.equipoCodigo ? (
@@ -160,12 +168,24 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
             ...tecnicos.map((t) => ({ valor: t.id, texto: t.activo ? t.nombre : `${t.nombre} (inactivo)` })),
           ]}
         />
+        <Selector
+          etiqueta="Tipo de falla"
+          name="categoria"
+          defaultValue={filtros.categoria ?? ''}
+          opciones={[{ valor: '', texto: 'Todos los tipos' }, ...CATEGORIAS_INCIDENCIA.map((c) => ({ valor: c, texto: ETIQUETA_CATEGORIA[c] }))]}
+        />
+        <Selector
+          etiqueta="Prioridad"
+          name="prioridad"
+          defaultValue={filtros.prioridad ?? ''}
+          opciones={[{ valor: '', texto: 'Todas' }, ...PRIORIDADES_INCIDENCIA.map((p) => ({ valor: p, texto: ETIQUETA_PRIORIDAD[p] }))]}
+        />
         <Boton type="submit" variante="secundario">
           Filtrar
         </Boton>
       </form>
 
-      {filtros.equipoCodigo || tecnicoFiltrado || filtros.busqueda || salaFiltrada ? (
+      {filtros.equipoCodigo || tecnicoFiltrado || filtros.busqueda || salaFiltrada || filtros.categoria || filtros.prioridad ? (
         <div className="flex flex-wrap items-center gap-2">
           {salaFiltrada ? (
             <FiltroActivo texto={`Sala: ${salaFiltrada.nombre}`} quitar={enlace(filtros, { salaId: undefined })} />
@@ -180,6 +200,18 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
             <FiltroActivo
               texto={`Técnico: ${tecnicoFiltrado.nombre}`}
               quitar={enlace(filtros, { tecnicoId: undefined })}
+            />
+          ) : null}
+          {filtros.categoria ? (
+            <FiltroActivo
+              texto={`Tipo: ${ETIQUETA_CATEGORIA[filtros.categoria]}`}
+              quitar={enlace(filtros, { categoria: undefined })}
+            />
+          ) : null}
+          {filtros.prioridad ? (
+            <FiltroActivo
+              texto={`Prioridad ${ETIQUETA_PRIORIDAD[filtros.prioridad].toLowerCase()}`}
+              quitar={enlace(filtros, { prioridad: undefined })}
             />
           ) : null}
           {filtros.busqueda ? (
@@ -203,6 +235,8 @@ export default async function PaginaIncidencias({ searchParams }: Props) {
         {salaFiltrada ? ` en ${salaFiltrada.nombre}` : ''}
         {filtros.equipoCodigo ? ` del equipo ${filtros.equipoCodigo}` : ''}
         {tecnicoFiltrado ? ` de ${tecnicoFiltrado.nombre}` : ''}
+        {filtros.categoria ? ` de tipo ${ETIQUETA_CATEGORIA[filtros.categoria].toLowerCase()}` : ''}
+        {filtros.prioridad ? ` con prioridad ${ETIQUETA_PRIORIDAD[filtros.prioridad].toLowerCase()}` : ''}
       </p>
 
       {!resultado.filas.length && resultado.total > 0 ? (

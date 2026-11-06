@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { CLASES_ENLACE_DORADO } from '@/components/auth/MarcoAcceso';
 import { Icono } from '@/components/ui/Icono';
-import { Button } from '@/components/ui/button';
+import { Boton } from '@/components/ui/Boton';
 import { Input } from '@/components/ui/input';
 
 // Espera antes de permitir otro envío (el servidor además limita a 3 solicitudes cada 15 minutos).
@@ -72,19 +72,19 @@ export function FormularioRecuperacion({ emailInicial }: { emailInicial: string 
 				</ul>
 				{error ? <p role="alert" className="text-sm text-baja">{error}</p> : null}
 				<div className="grid gap-3 sm:grid-cols-2">
-					<Button
+					<Boton
 						type="button"
-						variant="secondary"
-						size="lg"
-						loading={procesando}
+						variante="secundario"
+						tamano="grande"
+						cargando={procesando}
 						disabled={espera > 0}
 						onClick={() => void solicitar(enviadoA)}
 					>
 						{espera > 0 ? `Reenviar en ${espera} s` : 'Reenviar enlace'}
-					</Button>
-					<Button type="button" variant="ghost" size="lg" onClick={() => { setEnviadoA(''); setError(''); }}>
+					</Boton>
+					<Boton type="button" variante="fantasma" tamano="grande" onClick={() => { setEnviadoA(''); setError(''); }}>
 						Usar otro correo
-					</Button>
+					</Boton>
 				</div>
 				<p className="text-center text-sm lg:text-left">
 					<Link href="/login" className={CLASES_ENLACE_DORADO}>Volver al inicio de sesión</Link>
@@ -110,9 +110,9 @@ export function FormularioRecuperacion({ emailInicial }: { emailInicial: string 
 						setError('');
 					}}
 				/>
-				<Button type="submit" size="lg" className="w-full" loading={procesando}>
+				<Boton type="submit" tamano="grande" className="w-full" cargando={procesando}>
 					{procesando ? 'Enviando…' : 'Enviar enlace'}
-				</Button>
+				</Boton>
 			</form>
 			<p className="mt-5 text-center text-sm lg:text-left">
 				<Link href="/login" className={CLASES_ENLACE_DORADO}>Volver al inicio de sesión</Link>
