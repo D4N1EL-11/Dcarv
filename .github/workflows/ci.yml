@@ -8,7 +8,8 @@ on:
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    # Fijo en 24.04: desde octubre de 2026 ubuntu-latest es 26.04 y Playwright 1.56 no instala Chromium ahí.
+    runs-on: ubuntu-24.04
     env:
       # Solo para las pruebas de extremo a extremo sobre el build de producción: sin JWT_SECRET
       # la app no acepta sesiones (src/lib/auth/secreto.ts). No es la clave de Vercel.

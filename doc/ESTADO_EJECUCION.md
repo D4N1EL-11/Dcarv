@@ -242,3 +242,11 @@ Pedido del estudiante: bloque 1 (solución sin correo para el registro con @usa.
 - Informe mensual: `lib/datos/informe.ts`, `lib/reglas/informe.ts` y `/soporte/informe` (barras de una sola serie con `--color-serie-1`, tablas y estilos de impresión).
 - App instalable: `app/manifest.ts`, íconos generados con Edge desde el diseño de `icon.svg`, `public/sw.js` (solo guarda `/offline`, sus estilos y los íconos), `/offline` sin JavaScript y "Instalar la app" en el menú de la cuenta.
 - Pruebas: `npm test` 150/150; Playwright 15/15 (nuevas: permisos de las rutas nuevas, manifiesto, service worker, "Sin conexión" sin JavaScript, renovación de sesión). `tsc`, ESLint y `next build` sin errores. Script nuevo `probar:nuevas` (solicitudes, comentarios, avisos, clasificación, mantenimiento e informe contra la base).
+
+### Publicación (2026-11-06)
+
+- Migraciones M7 a M11: las aplicó el estudiante con `npm run db:migrar` (la herramienta de Claude bloqueó el comando por tocar la base de producción). `db:verificar`: 0 fallas (RLS en `comentarios`, `avisos` y `mantenimientos`; columnas nuevas presentes).
+- Contra la base: `probar:nuevas` 30/30, `probar:flujo`, `probar:mejoras` y `probar:opcionales` sin fallas; `db:limpiar -- --prueba` no encontró restos.
+- Prueba de humo en local (`next dev` con la base real): 38 páginas y rutas cargadas con sesión de administrador, de cuenta de reporte y sin sesión; todas con el código esperado y sin errores en el servidor.
+- Push de 71dd5fc y 399277d (hizo falta conceder a `gh` el permiso `workflow` porque el commit cambia el CI). Vercel publicó sin errores.
+- CI: lint, tipos, pruebas y build pasaron; falló solo la instalación de Chromium porque `ubuntu-latest` pasó a Ubuntu 26.04, que Playwright 1.56 no soporta. Se fijó `runs-on: ubuntu-24.04`.
