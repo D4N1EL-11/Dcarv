@@ -45,10 +45,25 @@
   --success: var(--color-funcional);
 }
 
+/* Pantalla completa: el contenido crece con la ventana hasta 1920 px y el margen lateral
+   escala con ella (16 px en móvil, 48 px en monitores grandes). */
+@utility contenedor-fluido {
+  width: 100%;
+  max-width: 120rem;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 2.5vw, 3rem);
+}
+
 @layer base {
   * { box-sizing: border-box; }
+  /* El ancho no salta cuando una página pasa a tener barra de desplazamiento. */
+  html { scrollbar-gutter: stable; }
+  /* En monitores 2K/4K se sube un poco la escala base para no perder legibilidad. */
+  @media (min-width: 1920px) { html { font-size: 17px; } }
+  @media (min-width: 2560px) { html { font-size: 18px; } }
   body {
     margin: 0;
+    min-height: 100dvh;
     background: var(--color-fondo);
     color: var(--color-texto);
     font-family: var(--font-sans);

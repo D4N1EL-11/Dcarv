@@ -12,7 +12,7 @@ export default function CargandoPanel() {
           <Bloque className="h-44" />
         </div>
       </div>
-      <EsqueletoTarjetas cantidad={3} alto="h-40" columnas="sm:grid-cols-2 lg:grid-cols-3" />
+      <EsqueletoTarjetas cantidad={3} alto="h-40" columnas="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" />
       <Bloque className="h-64" />
     </EsqueletoPagina>
   );

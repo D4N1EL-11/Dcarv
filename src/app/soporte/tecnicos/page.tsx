@@ -42,74 +42,77 @@ export default async function PaginaTecnicos() {
           </>
         }
       />
-      <Tarjeta className="grid gap-3">
-        <h2 className="text-xl font-medium">Registrar un técnico</h2>
-        <FormularioTecnico />
-      </Tarjeta>
-      {tecnicos.length ? (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {tecnicos.map((tecnico) => (
-            <li key={tecnico.id}>
-              <Tarjeta className={`grid h-full gap-4 ${tecnico.activo ? '' : 'opacity-70'}`}>
-                <div className="flex items-start gap-4">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-11 shrink-0 place-items-center rounded-full border border-primario/40 bg-primario-suave font-titulo text-lg font-semibold text-primario"
-                  >
-                    {iniciales(tecnico.nombre)}
-                  </span>
-                  <div className="grid min-w-0 flex-1 gap-1">
-                    <span className="truncate font-semibold">{tecnico.nombre}</span>
-                    <span className="justify-self-start">
-                      <Insignia
-                        tono={tecnico.activo ? 'funcional' : 'neutro'}
-                        texto={tecnico.activo ? 'Activo' : 'Inactivo'}
-                      />
+      {/* En pantallas anchas: formulario fijo a la izquierda y listado al lado. */}
+      <div className="grid items-start gap-10 xl:grid-cols-[22rem_minmax(0,1fr)] xl:gap-8 2xl:grid-cols-[26rem_minmax(0,1fr)]">
+        <Tarjeta className="grid gap-3 xl:sticky xl:top-24">
+          <h2 className="text-xl font-medium">Registrar un técnico</h2>
+          <FormularioTecnico />
+        </Tarjeta>
+        {tecnicos.length ? (
+          <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            {tecnicos.map((tecnico) => (
+              <li key={tecnico.id}>
+                <Tarjeta className={`grid h-full gap-4 ${tecnico.activo ? '' : 'opacity-70'}`}>
+                  <div className="flex items-start gap-4">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-11 shrink-0 place-items-center rounded-full border border-primario/40 bg-primario-suave font-titulo text-lg font-semibold text-primario"
+                    >
+                      {iniciales(tecnico.nombre)}
+                    </span>
+                    <div className="grid min-w-0 flex-1 gap-1">
+                      <span className="truncate font-semibold">{tecnico.nombre}</span>
+                      <span className="justify-self-start">
+                        <Insignia
+                          tono={tecnico.activo ? 'funcional' : 'neutro'}
+                          texto={tecnico.activo ? 'Activo' : 'Inactivo'}
+                        />
+                      </span>
+                    </div>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-superficie-alta px-3 py-2">
+                      <dt className="text-[0.65rem] uppercase tracking-[0.15em] text-texto-suave">En revisión</dt>
+                      <dd className="text-xl font-semibold tabular-nums">{tecnico.enRevision}</dd>
+                    </div>
+                    <div className="rounded-lg bg-superficie-alta px-3 py-2">
+                      <dt className="text-[0.65rem] uppercase tracking-[0.15em] text-texto-suave">Cerrados</dt>
+                      <dd className="text-xl font-semibold tabular-nums">{tecnico.cerradas}</dd>
+                    </div>
+                  </dl>
+                  {/* Carga relativa al técnico con más casos: ayuda a ver si el reparto está parejo. */}
+                  <div className="grid gap-1">
+                    <div aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-borde">
+                      <div className="h-full rounded-full bg-primario" style={{ width: `${Math.round((tecnico.enRevision / mayorCarga) * 100)}%` }} />
+                    </div>
+                    <span className="text-xs text-texto-suave">
+                      {plural(tecnico.enRevision, 'caso en revisión', 'casos en revisión')} ahora
                     </span>
                   </div>
-                </div>
-                <dl className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-superficie-alta px-3 py-2">
-                    <dt className="text-[0.65rem] uppercase tracking-[0.15em] text-texto-suave">En revisión</dt>
-                    <dd className="text-xl font-semibold tabular-nums">{tecnico.enRevision}</dd>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-3">
+                    <Link
+                      href={`/soporte/incidencias?tecnicoId=${tecnico.id}`}
+                      className="text-sm font-medium text-primario underline-offset-4 hover:underline"
+                    >
+                      Ver sus casos
+                    </Link>
+                    <AccionesTecnico
+                      id={tecnico.id}
+                      nombre={tecnico.nombre}
+                      activo={tecnico.activo}
+                      enRevision={tecnico.enRevision}
+                    />
                   </div>
-                  <div className="rounded-lg bg-superficie-alta px-3 py-2">
-                    <dt className="text-[0.65rem] uppercase tracking-[0.15em] text-texto-suave">Cerrados</dt>
-                    <dd className="text-xl font-semibold tabular-nums">{tecnico.cerradas}</dd>
-                  </div>
-                </dl>
-                {/* Carga relativa al técnico con más casos: ayuda a ver si el reparto está parejo. */}
-                <div className="grid gap-1">
-                  <div aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-borde">
-                    <div className="h-full rounded-full bg-primario" style={{ width: `${Math.round((tecnico.enRevision / mayorCarga) * 100)}%` }} />
-                  </div>
-                  <span className="text-xs text-texto-suave">
-                    {plural(tecnico.enRevision, 'caso en revisión', 'casos en revisión')} ahora
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-3">
-                  <Link
-                    href={`/soporte/incidencias?tecnicoId=${tecnico.id}`}
-                    className="text-sm font-medium text-primario underline-offset-4 hover:underline"
-                  >
-                    Ver sus casos
-                  </Link>
-                  <AccionesTecnico
-                    id={tecnico.id}
-                    nombre={tecnico.nombre}
-                    activo={tecnico.activo}
-                    enRevision={tecnico.enRevision}
-                  />
-                </div>
-              </Tarjeta>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EstadoVacio titulo="Aún no hay técnicos">
-          Registre el primero con el formulario de arriba.
-        </EstadoVacio>
-      )}
+                </Tarjeta>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EstadoVacio titulo="Aún no hay técnicos">
+            Registre el primero con el formulario de arriba.
+          </EstadoVacio>
+        )}
+      </div>
     </>
   );
 }

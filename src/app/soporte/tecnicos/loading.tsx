@@ -4,7 +4,7 @@ export default function CargandoTecnicos() {
   return (
     <EsqueletoPagina>
       <Bloque className="h-36" />
-      <EsqueletoTarjetas cantidad={4} alto="h-32" columnas="sm:grid-cols-2" />
+      <EsqueletoTarjetas cantidad={4} alto="h-32" columnas="sm:grid-cols-2 2xl:grid-cols-3" />
     </EsqueletoPagina>
   );
 }

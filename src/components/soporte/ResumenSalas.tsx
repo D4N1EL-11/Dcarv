@@ -13,7 +13,7 @@ type Props = {
 
 export function ResumenSalas({ salas, seleccionada, conRegistro = false }: Props) {
   return (
-    <ul aria-label="Resumen por sala" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ul aria-label="Resumen por sala" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {salas.map((sala) => {
         const activa = sala.id === seleccionada;
         return (

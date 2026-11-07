@@ -72,7 +72,7 @@ export default async function PaginaEtiquetas({ searchParams }: Props) {
       </div>
 
       {etiquetas.length ? (
-        <ul aria-label={sala ? `Etiquetas de ${sala.nombre}` : 'Etiqueta del equipo'} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-3">
+        <ul aria-label={sala ? `Etiquetas de ${sala.nombre}` : 'Etiqueta del equipo'} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 print:grid-cols-3 print:gap-3">
           {etiquetas.map((etiqueta) => (
             <li key={etiqueta.codigo} className="grid justify-items-center gap-2 rounded-xl border border-dashed border-[#999] bg-white p-4 text-center text-[#111] break-inside-avoid">
               <span className="text-[0.6rem] font-semibold uppercase tracking-[0.25em] text-[#6b4e12]">Soporte de Salas</span>

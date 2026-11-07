@@ -94,7 +94,7 @@ export default async function FichaDelCaso({ params }: Props) {
         <BotonImprimir texto="Imprimir caso" />
       </EncabezadoPagina>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="grid content-start gap-6">
           <Tarjeta className="grid gap-4">
             <h2 className="text-2xl font-medium">La falla</h2>

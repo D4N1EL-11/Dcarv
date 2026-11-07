@@ -28,20 +28,23 @@ export default async function PaginaSalas() {
           </>
         }
       />
-      <Tarjeta className="grid gap-3">
-        <h2 className="text-xl font-medium">Registrar una sala</h2>
-        <FormularioSala />
-      </Tarjeta>
-      <section aria-labelledby="titulo-lista-salas" className="grid gap-5">
-        <TituloSeccion id="titulo-lista-salas" titulo="Salas registradas" />
-        {salas.length ? (
-          <ResumenSalas salas={salas} conRegistro />
-        ) : (
-          <EstadoVacio titulo="Aún no hay salas">
-            Registre la primera con el formulario de arriba.
-          </EstadoVacio>
-        )}
-      </section>
+      {/* En pantallas anchas: formulario fijo a la izquierda y listado al lado. */}
+      <div className="grid items-start gap-10 xl:grid-cols-[22rem_minmax(0,1fr)] xl:gap-8 2xl:grid-cols-[26rem_minmax(0,1fr)]">
+        <Tarjeta className="grid gap-3 xl:sticky xl:top-24">
+          <h2 className="text-xl font-medium">Registrar una sala</h2>
+          <FormularioSala />
+        </Tarjeta>
+        <section aria-labelledby="titulo-lista-salas" className="grid gap-5">
+          <TituloSeccion id="titulo-lista-salas" titulo="Salas registradas" />
+          {salas.length ? (
+            <ResumenSalas salas={salas} conRegistro />
+          ) : (
+            <EstadoVacio titulo="Aún no hay salas">
+              Registre la primera con el formulario de arriba.
+            </EstadoVacio>
+          )}
+        </section>
+      </div>
     </>
   );
 }

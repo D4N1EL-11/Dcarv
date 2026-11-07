@@ -99,7 +99,7 @@ export function NavegacionSoporte({
 
   return (
     <header className="sticky top-0 z-40 bg-fondo/85 text-texto backdrop-blur-md print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3.5">
+      <div className="contenedor-fluido flex items-center gap-4 py-3.5">
         <Link href={inicioPara(rol)} className="group mr-2 flex items-center gap-3">
           <span className="grid size-8 place-items-center rounded-full border border-primario/50 font-titulo text-lg font-semibold text-primario transition group-hover:border-primario">
             D

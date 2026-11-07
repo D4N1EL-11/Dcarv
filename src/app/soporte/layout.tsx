@@ -57,7 +57,7 @@ async function rolCambio(usuarioId: string, rolSesion: string): Promise<boolean>
 function PiePagina({ soporte }: { soporte: boolean }) {
   return (
     <footer className="mt-16 border-t border-borde print:hidden">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-texto-suave">
+      <div className="contenedor-fluido flex flex-wrap items-center justify-between gap-3 py-6 text-xs text-texto-suave">
         <p>
           <span className="font-titulo text-sm text-primario">Soporte de Salas</span> · Control de
           calidad y soporte técnico de las salas de cómputo
@@ -93,7 +93,7 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
   const vistos = [...leerVistos(almacen.get(COOKIE_ALERTAS_VISTAS)?.value)];
   return (
     <ProveedorAvisos>
-      <div className="flex min-h-screen flex-col bg-fondo text-texto">
+      <div className="flex min-h-dvh flex-col bg-fondo text-texto">
         <a
           href="#contenido"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-superficie focus:px-4 focus:py-2 focus:font-semibold focus:text-primario"
@@ -115,7 +115,7 @@ export default async function LayoutSoporte({ children }: { children: React.Reac
         <main
           id="contenido"
           tabIndex={-1}
-          className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 focus:outline-none print:max-w-none print:py-0"
+          className="contenedor-fluido flex-1 py-10 focus:outline-none print:max-w-none print:px-4 print:py-0"
         >
           <TransicionPagina>{children}</TransicionPagina>
         </main>

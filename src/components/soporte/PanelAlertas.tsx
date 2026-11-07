@@ -21,7 +21,7 @@ export function PanelObservacion({ equipos }: { equipos: FilaCandidato[] }) {
   }
   const hoy = hoyBogota();
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {equipos.map((equipo) => (
         <li key={equipo.codigo}>
           <Tarjeta className="grid h-full gap-2 border-l-4 border-l-reparacion">
