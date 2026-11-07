@@ -74,6 +74,12 @@ export function ResumenSalas({ salas, seleccionada, conRegistro = false }: Props
                     Registrar equipos
                   </Link>
                   <Link
+                    href={`/soporte/mapa?sala=${sala.id}`}
+                    className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
+                  >
+                    Ver mapa
+                  </Link>
+                  <Link
                     href={`/soporte/incidencias?salaId=${sala.id}`}
                     className="relative z-10 text-sm font-medium text-primario underline-offset-4 hover:underline"
                   >

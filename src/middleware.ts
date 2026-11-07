@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import { esRolValido, puedeUsarApi, puedeVerPagina, redireccionSinPermiso, type Rol } from '@/lib/auth/permisos';
+import { esRolValido, esSoporte, puedeUsarApi, puedeVerPagina, redireccionSinPermiso, type Rol } from '@/lib/auth/permisos';
 import { ErrorConfiguracionSesion, secretoSesion } from '@/lib/auth/secreto';
 import { MENSAJES, type CodigoError } from '@/lib/reglas/errores';
 
@@ -16,7 +16,9 @@ function rechazar(request: NextRequest) {
   // Se recuerda a dónde iba el usuario para volver ahí después de iniciar sesión.
   const destino = new URL('/login', request.url);
   const { pathname, search } = request.nextUrl;
-  if (pathname.startsWith('/soporte')) destino.searchParams.set('siguiente', `${pathname}${search}`);
+  if (pathname.startsWith('/soporte') || pathname === '/monitor') {
+    destino.searchParams.set('siguiente', `${pathname}${search}`);
+  }
   return NextResponse.redirect(destino);
 }
 
@@ -26,6 +28,10 @@ function autorizar(request: NextRequest, rol: Rol) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith('/api/soporte')) {
     return puedeUsarApi(rol, request.method, pathname) ? NextResponse.next() : errorApi('SIN_PERMISO', 403);
+  }
+  // El modo monitor vive fuera de /soporte (sin menú), pero es una página de soporte.
+  if (pathname === '/monitor' && !esSoporte(rol)) {
+    return NextResponse.redirect(new URL(redireccionSinPermiso(rol, pathname), request.url));
   }
   if (pathname.startsWith('/soporte') && !puedeVerPagina(rol, pathname)) {
     return NextResponse.redirect(new URL(redireccionSinPermiso(rol, pathname), request.url));
@@ -55,4 +61,4 @@ export async function middleware(request: NextRequest) {
   return autorizar(request, rol);
 }
 
-export const config = { matcher: ['/soporte/:path*', '/api/soporte/:path*'] };
+export const config = { matcher: ['/soporte/:path*', '/api/soporte/:path*', '/monitor'] };

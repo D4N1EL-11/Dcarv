@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 - 2026-11-07
+
+Funcionalidades:
+
+- Mapa de cada sala (`/soporte/mapa`): los equipos en su puesto con el color de su estado; "Organizar puestos" mueve o intercambia equipos y cambia el ancho del mapa. Migración M12.
+- Modo monitor (`/monitor`): pantalla sin menú para la oficina de soporte, con cifras grandes, casos pendientes y estado de las salas; se actualiza cada 30 s y tiene pantalla completa.
+- Tiempos de atención (SLA): meta por prioridad (alta 24 h, media 72 h, baja 168 h), insignia en cada caso y sección en el informe mensual con el cumplimiento por prioridad y por técnico.
+- Tema claro, desde el menú de usuario (se recuerda en el navegador, sin destello al cargar).
+- Repuestos (`/soporte/repuestos`): existencias, mínimo y entradas; cada pieza usada en un caso se descuenta de la bodega. Aviso en el panel de lo que hay que comprar. Migración M13.
+- Notificaciones push: cada aviso de la campana llega también al celular o al escritorio (solo si el cambio se confirmó). Requiere `NEXT_PUBLIC_VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY`. Migración M14.
+
+Mejoras técnicas:
+
+- `conTransaccion` admite tareas "después de confirmar" (`despuesDeConfirmar`).
+- Al trasladar un equipo se libera su puesto en el mapa de la sala anterior.
+
 ## 0.5.0 - 2026-11-06
 
 Seguridad:

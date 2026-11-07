@@ -7,6 +7,8 @@ import { ConversacionCaso } from '@/components/soporte/ConversacionCaso';
 import { InsigniaEstadoEquipo } from '@/components/soporte/InsigniaEstadoEquipo';
 import { InsigniaEstadoIncidencia } from '@/components/soporte/InsigniaEstadoIncidencia';
 import { EtiquetaCategoria, InsigniaPrioridad } from '@/components/soporte/InsigniasClasificacion';
+import { InsigniaSla } from '@/components/soporte/InsigniaSla';
+import { UsarRepuesto } from '@/components/soporte/UsarRepuesto';
 import { ListaEventos } from '@/components/soporte/ListaEventos';
 import { MigaDePan } from '@/components/soporte/MigaDePan';
 import { BotonImprimir } from '@/components/ui/BotonImprimir';
@@ -16,7 +18,14 @@ import { Tarjeta } from '@/components/ui/Tarjeta';
 import { esSoporte } from '@/lib/auth/permisos';
 import { obtenerSesion } from '@/lib/auth/sesion';
 import { tecnicosDeLaPeticion } from '@/lib/consultasDePagina';
-import { eventosDeCaso, listarComentarios, obtenerIncidencia, rolActual } from '@/lib/dataService';
+import {
+  eventosDeCaso,
+  listarComentarios,
+  listarRepuestos,
+  obtenerIncidencia,
+  repuestosDeCaso,
+  rolActual,
+} from '@/lib/dataService';
 import { formatearFecha, plural, textoAntiguedad, textoResolucion } from '@/lib/formato';
 import { motivoSinComentarios } from '@/lib/reglas/comentario';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
@@ -55,10 +64,12 @@ export default async function FichaDelCaso({ params }: Props) {
   const soporte = esSoporte(rol);
   if (!soporte && caso.reportadoPorId !== sesion.id) notFound();
 
-  const [comentarios, eventos, tecnicos] = await Promise.all([
+  const [comentarios, eventos, tecnicos, usados, bodega] = await Promise.all([
     listarComentarios(caso.numeroCaso),
     soporte ? eventosDeCaso(caso.numeroCaso) : Promise.resolve([]),
     soporte ? tecnicosDeLaPeticion() : Promise.resolve([]),
+    soporte ? repuestosDeCaso(caso.numeroCaso) : Promise.resolve([]),
+    soporte && caso.estado !== 'cerrada' ? listarRepuestos() : Promise.resolve([]),
   ]);
   const hoy = hoyBogota();
   const quien = { soporte, esQuienReporto: caso.reportadoPorId === sesion.id };
@@ -88,6 +99,7 @@ export default async function FichaDelCaso({ params }: Props) {
             <InsigniaEstadoIncidencia estado={caso.estado} />
             <InsigniaPrioridad prioridad={caso.prioridad} />
             <EtiquetaCategoria categoria={caso.categoria} />
+            {soporte ? <InsigniaSla caso={caso} /> : null}
           </span>
         }
       >
@@ -205,6 +217,28 @@ export default async function FichaDelCaso({ params }: Props) {
               ) : null}
               <BloquePanel titulo="Clasificación" className="print:hidden">
                 <ClasificarIncidencia numeroCaso={caso.numeroCaso} categoria={caso.categoria} prioridad={caso.prioridad} />
+              </BloquePanel>
+              <BloquePanel titulo={usados.length ? `Repuestos usados · ${usados.length}` : 'Repuestos usados'}>
+                {usados.length ? (
+                  <ul className="grid gap-2 text-sm">
+                    {usados.map((u) => (
+                      <li key={u.id} className="flex items-baseline justify-between gap-3">
+                        <span className="text-texto">{u.nombre}</span>
+                        <span className="shrink-0 tabular-nums text-texto-suave">× {u.cantidad}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-texto-suave">Ninguno anotado.</p>
+                )}
+                {!cerrada ? (
+                  <div className="border-t border-borde pt-4 print:hidden">
+                    <UsarRepuesto
+                      numeroCaso={caso.numeroCaso}
+                      repuestos={bodega.map(({ id, nombre, existencias }) => ({ id, nombre, existencias }))}
+                    />
+                  </div>
+                ) : null}
               </BloquePanel>
             </>
           ) : (

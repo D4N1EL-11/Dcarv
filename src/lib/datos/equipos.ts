@@ -110,7 +110,8 @@ export async function trasladarEquipo(codigo: string, salaId: string): Promise<{
   return conTransaccion(async (tx) => {
     const equipo = await obtenerEquipoPorCodigo(tx, codigo);
     const sala = await obtenerSalaActiva(tx, salaId);
-    await tx.query('UPDATE equipos SET sala_id = $1 WHERE id = $2', [sala.id, equipo.id]);
+    // Su puesto en el mapa era de la sala anterior: en la nueva toma el primer puesto libre.
+    await tx.query('UPDATE equipos SET sala_id = $1, fila = NULL, columna = NULL WHERE id = $2', [sala.id, equipo.id]);
     await registrarEvento(tx, { accion: 'equipo_trasladado', equipoCodigo: normalizarCodigo(codigo), detalle: `a ${sala.nombre}` });
     return { sala: sala.nombre };
   });

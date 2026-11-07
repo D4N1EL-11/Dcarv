@@ -1,4 +1,4 @@
-import { DIAS_REASIGNACION, ZONA_HORARIA } from '@/lib/config/soporte';
+import { DIAS_REASIGNACION, META_HORAS_PRIORIDAD, ZONA_HORARIA } from '@/lib/config/soporte';
 import { consultar } from '@/lib/db/conexion';
 import { categoriaMasFrecuente, type CategoriaIncidencia, type PrioridadIncidencia } from '@/lib/reglas/clasificacion';
 import { ETIQUETA_EQUIPO } from '@/lib/reglas/equipo';
@@ -11,6 +11,13 @@ import { historialMantenimientos, type FilaMantenimiento } from './mantenimiento
 const CIERRE = `(i.fecha_estado AT TIME ZONE '${ZONA_HORARIA}')::date`;
 const CERRADA_EN_MES = `i.estado = 'cerrada' AND ${CIERRE} BETWEEN $1::date AND $2::date`;
 const REPORTADA_EN_MES = 'i.fecha BETWEEN $1::date AND $2::date';
+
+// Tiempos de atención (SLA): horas entre el reporte y el cierre, y la meta de cada prioridad.
+const HORAS_ATENCION = 'EXTRACT(EPOCH FROM (i.fecha_estado - i.created_at)) / 3600';
+const META_HORAS = `CASE i.prioridad ${Object.entries(META_HORAS_PRIORIDAD)
+  .map(([prioridad, horas]) => `WHEN '${prioridad}' THEN ${horas}`)
+  .join(' ')} END`;
+const DENTRO_DE_META = `${HORAS_ATENCION} <= ${META_HORAS}`;
 
 export type ResumenMes = {
   reportadas: number;
@@ -31,7 +38,20 @@ export type FilaSalaInforme = {
   masFrecuente: { categoria: CategoriaIncidencia; total: number } | null;
 };
 
-export type FilaTecnicoInforme = { tecnico: string; cerradas: number; promedioDias: number | null };
+export type FilaTecnicoInforme = {
+  tecnico: string;
+  cerradas: number;
+  promedioDias: number | null;
+  promedioHoras: number | null;
+  dentroDeMeta: number;
+};
+// Cierres del mes por prioridad frente a su meta de horas.
+export type FilaSlaInforme = {
+  prioridad: PrioridadIncidencia;
+  cerradas: number;
+  dentroDeMeta: number;
+  promedioHoras: number | null;
+};
 export type FilaEquipoInforme = { codigo: string; sala: string; fallas: number };
 export type FilaBajaInforme = { codigo: string; dia: string; actor: string };
 
@@ -44,6 +64,7 @@ export type Informe = {
   porPrioridad: Record<PrioridadIncidencia, number>;
   porSala: FilaSalaInforme[];
   porTecnico: FilaTecnicoInforme[];
+  sla: FilaSlaInforme[];
   equiposConMasFallas: FilaEquipoInforme[];
   bajas: FilaBajaInforme[];
   mantenimientos: FilaMantenimiento[];
@@ -103,10 +124,26 @@ async function salasDelMes(desde: string, hasta: string): Promise<FilaSalaInform
   return salas.map((s) => ({ ...s, masFrecuente: categoriaMasFrecuente(porSala.get(s.salaId) ?? {}) }));
 }
 
+async function slaDelMes(desde: string, hasta: string): Promise<FilaSlaInforme[]> {
+  const filas = await consultar<FilaSlaInforme>(
+    `SELECT i.prioridad, COUNT(*) AS cerradas,
+            COUNT(*) FILTER (WHERE ${DENTRO_DE_META}) AS "dentroDeMeta",
+            (AVG(${HORAS_ATENCION}))::float8 AS "promedioHoras"
+       FROM incidencias i
+      WHERE ${CERRADA_EN_MES}
+      GROUP BY i.prioridad`,
+    [desde, hasta],
+  );
+  // Las tres prioridades siempre, en orden, aunque alguna no tenga cierres.
+  return (['alta', 'media', 'baja'] as const).map(
+    (prioridad) => filas.find((f) => f.prioridad === prioridad) ?? { prioridad, cerradas: 0, dentroDeMeta: 0, promedioHoras: null },
+  );
+}
+
 export async function informeMensual(mes: Mes): Promise<Informe> {
   const { desde, hasta } = rangoDelMes(mes);
   const previo = rangoDelMes(sumarMeses(mes, -1));
-  const [resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, equiposConMasFallas, bajas, mantenimientos] =
+  const [resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, equiposConMasFallas, bajas, mantenimientos] =
     await Promise.all([
       resumenDe(desde, hasta),
       resumenDe(previo.desde, previo.hasta),
@@ -114,13 +151,16 @@ export async function informeMensual(mes: Mes): Promise<Informe> {
       conteoPor('prioridad', desde, hasta, ['alta', 'media', 'baja'] as const),
       salasDelMes(desde, hasta),
       consultar<FilaTecnicoInforme>(
-        `SELECT t.nombre AS tecnico, COUNT(*) AS cerradas, (AVG(${CIERRE} - i.fecha))::float8 AS "promedioDias"
+        `SELECT t.nombre AS tecnico, COUNT(*) AS cerradas, (AVG(${CIERRE} - i.fecha))::float8 AS "promedioDias",
+                (AVG(${HORAS_ATENCION}))::float8 AS "promedioHoras",
+                COUNT(*) FILTER (WHERE ${DENTRO_DE_META}) AS "dentroDeMeta"
            FROM incidencias i JOIN tecnicos t ON t.id = i.tecnico_id
           WHERE ${CERRADA_EN_MES}
           GROUP BY t.id, t.nombre
           ORDER BY COUNT(*) DESC, t.nombre`,
         [desde, hasta],
       ),
+      slaDelMes(desde, hasta),
       consultar<FilaEquipoInforme>(
         `SELECT e.codigo, s.nombre AS sala, COUNT(*) AS fallas
            FROM incidencias i JOIN equipos e ON e.id = i.equipo_id JOIN salas s ON s.id = e.sala_id
@@ -142,7 +182,7 @@ export async function informeMensual(mes: Mes): Promise<Informe> {
       ),
       historialMantenimientos({ desde, hasta }, 200),
     ]);
-  return { desde, hasta, resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, equiposConMasFallas, bajas, mantenimientos };
+  return { desde, hasta, resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, equiposConMasFallas, bajas, mantenimientos };
 }
 
 // Mes del primer registro (la primera incidencia): el selector no ofrece meses anteriores.

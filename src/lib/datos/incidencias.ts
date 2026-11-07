@@ -53,6 +53,9 @@ function seleccion(p: (valor: unknown) => string, extra = ''): string {
          (i.fecha_estado AT TIME ZONE ${p(ZONA_HORARIA)})::date AS "diaEstado",
          e.estado AS "estadoEquipo", i.categoria, i.prioridad,
          u.email AS "reportadoPor", (i.foto IS NOT NULL) AS "tieneFoto",
+         to_char(i.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "creadaEn",
+         CASE WHEN i.estado = 'cerrada'
+              THEN to_char(i.fecha_estado AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') END AS "cerradaEn",
          (SELECT COUNT(*) FROM comentarios c WHERE c.incidencia_id = i.id) AS "comentarios",
          (SELECT COUNT(*) FROM incidencias o
            WHERE o.equipo_id = i.equipo_id AND o.id <> i.id AND o.estado <> 'cerrada') AS "otrasPendientes"
@@ -169,8 +172,7 @@ export async function historialDeEquipo(codigo: string): Promise<FilaIncidencia[
 export async function obtenerIncidencia(numeroCaso: string): Promise<FichaCaso | null> {
   const { valores, p } = crearParametros();
   const [fila] = await consultar<FichaCaso>(
-    `${seleccion(p, `s.nombre AS sala, e.sala_id AS "salaId", i.reportado_por AS "reportadoPorId",
-        to_char(i.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "creadaEn",`)}
+    `${seleccion(p, `s.nombre AS sala, e.sala_id AS "salaId", i.reportado_por AS "reportadoPorId",`)}
      JOIN salas s ON s.id = e.sala_id
      WHERE i.numero_caso = ${p(numeroCaso.trim().toUpperCase())}`,
     valores,

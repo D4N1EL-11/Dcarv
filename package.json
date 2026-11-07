@@ -33,6 +33,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "resend": "^6.34.1",
+    "web-push": "^3.6.7",
     "zod": "^4.1.5"
   },
   "devDependencies": {
@@ -45,6 +46,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.0.4",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.4",

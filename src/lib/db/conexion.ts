@@ -43,17 +43,36 @@ export async function consultar<T extends QueryResultRow>(
   }
 }
 
+// Tareas que deben esperar a que la transacción se confirme (p. ej. enviar una notificación
+// push): si la transacción se revierte, no se ejecutan.
+const pendientesAlConfirmar = new WeakMap<PoolClient, (() => void)[]>();
+
+export function despuesDeConfirmar(tx: PoolClient, tarea: () => void): void {
+  const lista = pendientesAlConfirmar.get(tx) ?? [];
+  lista.push(tarea);
+  pendientesAlConfirmar.set(tx, lista);
+}
+
 export async function conTransaccion<T>(trabajo: (tx: PoolClient) => Promise<T>): Promise<T> {
   const tx = await obtenerPool().connect();
   try {
     await tx.query('BEGIN');
     const resultado = await trabajo(tx);
     await tx.query('COMMIT');
+    // Ya confirmada: una tarea que falla no puede deshacer el cambio ni volverlo un error.
+    for (const tarea of pendientesAlConfirmar.get(tx) ?? []) {
+      try {
+        tarea();
+      } catch (error) {
+        console.error(error);
+      }
+    }
     return resultado;
   } catch (error) {
     await tx.query('ROLLBACK');
     throw traducirErrorPostgres(error) ?? error;
   } finally {
+    pendientesAlConfirmar.delete(tx);
     tx.release();
   }
 }

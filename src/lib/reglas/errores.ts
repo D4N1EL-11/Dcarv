@@ -15,6 +15,11 @@ export type CodigoError =
   | 'TECNICO_NO_ENCONTRADO'
   | 'SIN_PERMISO'
   | 'USUARIO_NO_ENCONTRADO'
+  | 'PUESTO_INVALIDO'
+  | 'REPUESTO_DUPLICADO'
+  | 'REPUESTO_NO_ENCONTRADO'
+  | 'SIN_EXISTENCIAS'
+  | 'PUSH_NO_CONFIGURADO'
   | 'ERROR_INTERNO';
 
 export const MENSAJES: Record<CodigoError, string> = {
@@ -34,6 +39,11 @@ export const MENSAJES: Record<CodigoError, string> = {
   SIN_SOLICITUD: 'La cuenta no tiene una solicitud de soporte pendiente.',
   TECNICO_DUPLICADO: 'Ya existe un técnico con ese nombre.',
   TECNICO_NO_ENCONTRADO: 'El técnico no existe.',
+  PUESTO_INVALIDO: 'El puesto está fuera del mapa de la sala.',
+  REPUESTO_DUPLICADO: 'Ya existe un repuesto con ese nombre.',
+  REPUESTO_NO_ENCONTRADO: 'El repuesto no existe.',
+  SIN_EXISTENCIAS: 'No hay existencias suficientes de ese repuesto.',
+  PUSH_NO_CONFIGURADO: 'Las notificaciones push no están configuradas en el servidor.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -54,6 +64,11 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   SIN_SOLICITUD: 409,
   TECNICO_DUPLICADO: 409,
   TECNICO_NO_ENCONTRADO: 404,
+  PUESTO_INVALIDO: 422,
+  REPUESTO_DUPLICADO: 409,
+  REPUESTO_NO_ENCONTRADO: 404,
+  SIN_EXISTENCIAS: 409,
+  PUSH_NO_CONFIGURADO: 503,
   ERROR_INTERNO: 500,
 };
 
@@ -72,6 +87,7 @@ const POR_RESTRICCION: Record<string, CodigoError> = {
   equipos_codigo_unico: 'CODIGO_DUPLICADO',
   ux_salas_nombre: 'SALA_DUPLICADA',
   ux_tecnicos_nombre: 'TECNICO_DUPLICADO',
+  ux_repuestos_nombre: 'REPUESTO_DUPLICADO',
   incidencias_numero_unico: 'ERROR_INTERNO',
 };
 

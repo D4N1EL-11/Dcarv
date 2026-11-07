@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { OpcionInstalar } from '@/components/pwa/OpcionInstalar';
+import { OpcionNotificaciones } from '@/components/pwa/OpcionNotificaciones';
 import { Icono } from '@/components/ui/Icono';
 import { esSoporte, nombreRol, type Rol } from '@/lib/auth/permisos';
+import { OpcionTema } from './OpcionTema';
 
 export const CLASES_OPCION =
   'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-texto transition hover:bg-primario-suave';
@@ -80,6 +82,21 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
               </Link>
             ) : null}
             {esSoporte(rol) ? (
+              <Link role="menuitem" href="/soporte/repuestos" className={CLASES_OPCION}>
+                <Icono nombre="repuesto" className="size-4 text-texto-suave" /> Repuestos
+              </Link>
+            ) : null}
+            {esSoporte(rol) ? (
+              <Link role="menuitem" href="/soporte/mapa" className={CLASES_OPCION}>
+                <Icono nombre="mapa" className="size-4 text-texto-suave" /> Mapa de salas
+              </Link>
+            ) : null}
+            {esSoporte(rol) ? (
+              <Link role="menuitem" href="/monitor" className={CLASES_OPCION}>
+                <Icono nombre="monitor" className="size-4 text-texto-suave" /> Modo monitor
+              </Link>
+            ) : null}
+            {esSoporte(rol) ? (
               <Link role="menuitem" href="/soporte/actividad" className={CLASES_OPCION}>
                 <Icono nombre="reloj" className="size-4 text-texto-suave" /> Registro de cambios
               </Link>
@@ -92,6 +109,8 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
             <Link role="menuitem" href="/soporte/ayuda" className={CLASES_OPCION}>
               <Icono nombre="ayuda" className="size-4 text-texto-suave" /> Ayuda y reglas
             </Link>
+            <OpcionTema className={CLASES_OPCION} />
+            <OpcionNotificaciones className={CLASES_OPCION} />
             <OpcionInstalar className={CLASES_OPCION} />
             <button role="menuitem" type="button" onClick={cerrarSesion} disabled={saliendo} className={`${CLASES_OPCION} text-baja`}>
               <Icono nombre="salir" className="size-4" /> {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}

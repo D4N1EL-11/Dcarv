@@ -45,6 +45,30 @@
   --success: var(--color-funcional);
 }
 
+/*
+ * Tema claro (lib/tema.ts): la misma paleta en tinta oscura sobre papel cálido. El dorado se
+ * oscurece para conservar el contraste del texto (≥ 4.5:1 sobre blanco). Lo aplica el script del
+ * layout raíz antes de pintar, así que no hay destello del tema oscuro.
+ */
+:root[data-tema='claro'] {
+  color-scheme: light;
+  --color-primario: #8a6416;
+  --color-primario-fuerte: #6f4f0f;
+  --color-primario-suave: rgb(138 100 22 / 0.1);
+  --color-funcional: #1f7a4a;
+  --color-reparacion: #a8561a;
+  --color-baja: #b42f2f;
+  --color-revision: #2f5f9e;
+  --color-fondo: #f6f4ef;
+  --color-superficie: #ffffff;
+  --color-superficie-alta: #efece4;
+  --color-texto: #1c1b19;
+  --color-texto-suave: #5f5b52;
+  --color-borde: #dedad0;
+  --color-serie-1: #a87412;
+  --color-serie-2: #6a58d6;
+}
+
 /* Pantalla completa: el contenido crece con la ventana hasta 1920 px y el margen lateral
    escala con ella (16 px en móvil, 48 px en monitores grandes). */
 @utility contenedor-fluido {
@@ -122,7 +146,8 @@
 
 /* Impresión (ficha del equipo como hoja de vida): fondo blanco, tinta negra, sin navegación. */
 @media print {
-  :root {
+  :root,
+  :root[data-tema='claro'] {
     --color-fondo: #ffffff;
     --color-superficie: #ffffff;
     --color-superficie-alta: #f4f4f4;

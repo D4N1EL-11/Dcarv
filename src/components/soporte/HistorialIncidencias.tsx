@@ -10,6 +10,7 @@ import { diasHastaReasignacion } from '@/lib/reglas/tecnico';
 import { AccionesIncidencia } from './AccionesIncidencia';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
 import { EtiquetaCategoria, InsigniaPrioridad } from './InsigniasClasificacion';
+import { InsigniaSla } from './InsigniaSla';
 
 type Props = {
   incidencias: FilaIncidencia[];
@@ -76,6 +77,7 @@ function Detalle({
         <InsigniaEstadoIncidencia estado={incidencia.estado} />
         {incidencia.prioridad !== 'media' ? <InsigniaPrioridad prioridad={incidencia.prioridad} /> : null}
         <EtiquetaCategoria categoria={incidencia.categoria} />
+        {soloLectura ? null : <InsigniaSla caso={incidencia} />}
         {mostrarEquipo && soloLectura ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primario">
             <Icono nombre="equipo" className="size-3.5" />

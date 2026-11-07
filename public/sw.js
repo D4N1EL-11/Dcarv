@@ -62,3 +62,37 @@ self.addEventListener('fetch', (evento) => {
   }
   // Todo lo demás (API, datos, scripts) pasa directo a la red, sin caché del service worker.
 });
+
+// Notificaciones push (lib/datos/push.ts): cada aviso de la campana llega con su título, detalle y
+// enlace. Al pulsarla se abre (o se enfoca) la pestaña del módulo en ese enlace.
+self.addEventListener('push', (evento) => {
+  let datos = {};
+  try {
+    datos = evento.data ? evento.data.json() : {};
+  } catch {
+    datos = { titulo: evento.data ? evento.data.text() : '' };
+  }
+  const enlace = typeof datos.enlace === 'string' && datos.enlace.startsWith('/soporte') ? datos.enlace : '/soporte/avisos';
+  evento.waitUntil(
+    self.registration.showNotification(datos.titulo || 'Soporte de Salas', {
+      body: datos.detalle || '',
+      icon: '/iconos/icono-192.png',
+      badge: '/iconos/icono-192.png',
+      data: { enlace },
+      tag: enlace, // varios avisos del mismo caso se agrupan en una sola notificación
+      renotify: true,
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const destino = new URL(evento.notification.data?.enlace || '/soporte/avisos', self.location.origin).href;
+  evento.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((pestanas) => {
+      const abierta = pestanas.find((p) => new URL(p.url).origin === self.location.origin);
+      if (abierta) return abierta.navigate(destino).then((p) => (p || abierta).focus());
+      return self.clients.openWindow(destino);
+    }),
+  );
+});

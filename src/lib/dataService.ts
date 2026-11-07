@@ -10,6 +10,19 @@ export {
 	paginarEquipos,
 	trasladarEquipo,
 } from '@/lib/datos/equipos';
+export { cambiarColumnasMapa, mapaDeSala, moverEquipo } from '@/lib/datos/mapa';
+export type { EquipoMapa, MapaSala } from '@/lib/datos/mapa';
+export {
+	actualizarRepuesto,
+	contarBajoMinimo,
+	crearRepuesto,
+	listarRepuestos,
+	repuestosDeCaso,
+	usarRepuesto,
+} from '@/lib/datos/repuestos';
+export type { FilaRepuesto, RepuestoUsado } from '@/lib/datos/repuestos';
+export { borrarSuscripcion, guardarSuscripcion, pushConfigurado } from '@/lib/datos/push';
+export type { SuscripcionPush } from '@/lib/datos/push';
 export { actividadReciente, serieActividad } from '@/lib/datos/panel';
 export type { EventoActividad } from '@/lib/datos/panel';
 export { buscarGlobal } from '@/lib/datos/busqueda';
@@ -42,7 +55,15 @@ export {
 } from '@/lib/datos/mantenimiento';
 export type { ConteoMantenimiento, FilaMantenimiento, FilaPlanMantenimiento } from '@/lib/datos/mantenimiento';
 export { informeMensual, primerMesConDatos } from '@/lib/datos/informe';
-export type { FilaBajaInforme, FilaEquipoInforme, FilaSalaInforme, FilaTecnicoInforme, Informe, ResumenMes } from '@/lib/datos/informe';
+export type {
+	FilaBajaInforme,
+	FilaEquipoInforme,
+	FilaSalaInforme,
+	FilaSlaInforme,
+	FilaTecnicoInforme,
+	Informe,
+	ResumenMes,
+} from '@/lib/datos/informe';
 export { actoresDeEventos, eventosDeCaso, eventosDeEquipo, eventosRecientes } from '@/lib/datos/eventos';
 export type { AccionEvento, FiltrosEventos, FilaEvento } from '@/lib/datos/eventos';
 export { intentosRecientes, registrarIntento } from '@/lib/datos/accesos';

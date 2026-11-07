@@ -7,11 +7,12 @@ import { Cifra } from '@/components/ui/Cifra';
 import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { Icono } from '@/components/ui/Icono';
 import { soloSoporte } from '@/lib/auth/sesion';
-import { CATEGORIAS_INCIDENCIA, DIAS_REASIGNACION, PRIORIDADES_INCIDENCIA } from '@/lib/config/soporte';
+import { CATEGORIAS_INCIDENCIA, DIAS_REASIGNACION, META_HORAS_PRIORIDAD, PRIORIDADES_INCIDENCIA } from '@/lib/config/soporte';
 import { informeMensual, primerMesConDatos } from '@/lib/dataService';
 import { formatearFecha, plural, textoPromedioDias } from '@/lib/formato';
 import { AYUDA_CATEGORIA, AYUDA_PRIORIDAD, ETIQUETA_CATEGORIA, ETIQUETA_PRIORIDAD } from '@/lib/reglas/clasificacion';
 import { hoyBogota } from '@/lib/reglas/fechas';
+import { textoHoras } from '@/lib/reglas/sla';
 import {
   compararMeses,
   mesDe,
@@ -192,6 +193,31 @@ export default async function PaginaInforme({ searchParams }: Props) {
         </div>
       </section>
 
+      <section aria-labelledby="titulo-sla" className="grid gap-4">
+        <TituloSeccion id="titulo-sla" titulo="Tiempos de atención">
+          <p className="text-sm text-texto-suave">
+            Horas entre el reporte y el cierre frente a la meta de cada prioridad (alta {META_HORAS_PRIORIDAD.alta} h,
+            media {META_HORAS_PRIORIDAD.media} h, baja {META_HORAS_PRIORIDAD.baja} h).
+          </p>
+        </TituloSeccion>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {informe.sla.map((fila) => (
+            <Cifra
+              key={fila.prioridad}
+              titulo={`Prioridad ${ETIQUETA_PRIORIDAD[fila.prioridad].toLowerCase()}`}
+              valor={fila.cerradas ? `${Math.round((fila.dentroDeMeta / fila.cerradas) * 100)} %` : '—'}
+              detalle={
+                fila.cerradas
+                  ? `${fila.dentroDeMeta} de ${plural(fila.cerradas, 'cierre', 'cierres')} dentro de la meta · promedio ${textoHoras(fila.promedioHoras ?? 0)}`
+                  : 'Sin cierres este mes'
+              }
+              icono="reloj"
+              color={fila.cerradas && fila.dentroDeMeta < fila.cerradas ? 'text-reparacion' : 'text-funcional'}
+            />
+          ))}
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <BloquePanel titulo="Técnicos · casos cerrados en el mes">
           {informe.porTecnico.length ? (
@@ -201,6 +227,7 @@ export default async function PaginaInforme({ searchParams }: Props) {
                   <th scope="col">Técnico</th>
                   <th scope="col">Cerrados</th>
                   <th scope="col">Tiempo medio</th>
+                  <th scope="col">Dentro de la meta</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
@@ -209,6 +236,9 @@ export default async function PaginaInforme({ searchParams }: Props) {
                     <th scope="row" className="py-2 text-left font-medium text-texto">{t.tecnico}</th>
                     <td className="py-2 text-right tabular-nums">{plural(t.cerradas, 'caso', 'casos')}</td>
                     <td className="py-2 pl-4 text-right text-texto-suave">{textoPromedioDias(t.promedioDias)}</td>
+                    <td className="py-2 pl-4 text-right tabular-nums text-texto-suave" title="Cierres dentro de la meta de su prioridad">
+                      {Math.round((t.dentroDeMeta / t.cerradas) * 100)} % a tiempo
+                    </td>
                   </tr>
                 ))}
               </tbody>

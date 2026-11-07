@@ -140,6 +140,14 @@ export function textoEvento(evento: EventoParaTexto): string {
       return `programó el mantenimiento de ${detalle}`;
     case 'mantenimiento_realizado':
       return `registró el mantenimiento de ${detalle}`;
+    case 'equipo_movido':
+      return `movió ${equipo ?? 'un equipo'} en el mapa ${detalle}`.trim();
+    case 'repuesto_registrado':
+      return `registró el repuesto ${detalle}`;
+    case 'repuesto_entrada':
+      return `registró una entrada de ${detalle}`;
+    case 'repuesto_usado':
+      return `usó ${detalle} en ${caso ?? 'una incidencia'}${en}`;
     default:
       return detalle || accion;
   }

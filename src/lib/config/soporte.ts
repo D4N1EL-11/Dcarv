@@ -30,3 +30,21 @@ export const MINIMO_DIAS_MANTENIMIENTO = 7;
 export const MAXIMO_DIAS_MANTENIMIENTO = 365;
 export const DIAS_AVISO_MANTENIMIENTO = 7; // "Próximo": vence dentro de esta cantidad de días
 export const LARGO_MAXIMO_NOTAS_MANTENIMIENTO = 500;
+
+// Mapa de cada sala (M12).
+export const COLUMNAS_MAPA_INICIAL = 6;
+export const MINIMO_COLUMNAS_MAPA = 2;
+export const MAXIMO_COLUMNAS_MAPA = 16;
+export const MAXIMO_FILAS_MAPA = 40;
+
+// Tiempos de atención (SLA): horas máximas entre el reporte y el cierre según la prioridad.
+// "Por vencer" desde este porcentaje de la meta consumido.
+export const META_HORAS_PRIORIDAD = { alta: 24, media: 72, baja: 168 } as const;
+export const FRACCION_POR_VENCER = 0.75;
+
+// Modo monitor (pantalla de la oficina de soporte).
+export const SEGUNDOS_REFRESCO_MONITOR = 30;
+
+// Repuestos (M13).
+export const MAXIMO_CANTIDAD_REPUESTO = 100; // por registro de uso o de entrada
+export const MAXIMO_EXISTENCIAS_REPUESTO = 100_000;

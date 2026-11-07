@@ -27,6 +27,10 @@ const ICONO: Record<AccionEvento, NombreIcono> = {
   solicitud_rechazada: 'escudo',
   mantenimiento_programado: 'mantenimiento',
   mantenimiento_realizado: 'mantenimiento',
+  equipo_movido: 'mapa',
+  repuesto_registrado: 'repuesto',
+  repuesto_entrada: 'repuesto',
+  repuesto_usado: 'repuesto',
 };
 
 const formatoMomento = new Intl.DateTimeFormat('es-CO', {
@@ -40,6 +44,7 @@ function enlaceDe(evento: FilaEvento): string | null {
   if (evento.numeroCaso) return `/soporte/incidencias/${encodeURIComponent(evento.numeroCaso)}`;
   if (evento.equipoCodigo) return `/soporte/equipos/${encodeURIComponent(evento.equipoCodigo)}`;
   if (evento.accion.startsWith('mantenimiento_')) return '/soporte/mantenimiento';
+  if (evento.accion.startsWith('repuesto_')) return '/soporte/repuestos';
   return null;
 }
 

@@ -19,6 +19,7 @@ import { TAMANO_PAGINA_EQUIPOS } from '@/lib/config/soporte';
 import { candidatosDeLaPeticion } from '@/lib/consultasDePagina';
 import {
   actividadReciente,
+  contarBajoMinimo,
   contarIncidenciasPorEstado,
   contarMantenimientoPorEstado,
   incidenciasPendientes,
@@ -71,7 +72,7 @@ export default async function PanelSoporte({ searchParams }: Props) {
   const filtros = filtrado.success ? filtrado.data : {};
   const pagina = normalizarPagina(parametros.pagina);
   // Todas las consultas en paralelo; la de alertas se comparte con el menú (React cache).
-  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen, pendientes, plan] = await Promise.all([
+  const [salas, resultado, candidatos, incidencias, serie, eventos, almacen, pendientes, plan, porComprar] = await Promise.all([
     listarSalas(),
     paginarEquipos(filtros, pagina, TAMANO_PAGINA_EQUIPOS),
     candidatosDeLaPeticion(),
@@ -81,6 +82,11 @@ export default async function PanelSoporte({ searchParams }: Props) {
     cookies(),
     incidenciasPendientes(5),
     planDeMantenimiento(),
+    // Informativo, como el contador del menú: si falla, el panel sigue.
+    contarBajoMinimo().catch((error: unknown) => {
+      console.error(error);
+      return 0;
+    }),
   ]);
   const mantenimiento = contarMantenimientoPorEstado(plan);
   const equipos = resultado.filas;
@@ -125,8 +131,14 @@ export default async function PanelSoporte({ searchParams }: Props) {
         <Link href="/soporte/salas" className={clasesBoton('secundario')}>
           Registrar sala
         </Link>
+        <Link href="/soporte/mapa" className={`${clasesBoton('secundario')} gap-2`}>
+          <Icono nombre="mapa" /> Mapa de salas
+        </Link>
         <Link href="/soporte/informe" className={`${clasesBoton('secundario')} gap-2`}>
           <Icono nombre="informe" /> Informe del mes
+        </Link>
+        <Link href="/monitor" className={`${clasesBoton('secundario')} gap-2`} title="Pantalla para la oficina de soporte">
+          <Icono nombre="monitor" /> Modo monitor
         </Link>
       </EncabezadoPagina>
 
@@ -146,6 +158,15 @@ export default async function PanelSoporte({ searchParams }: Props) {
           {textoMantenimiento(mantenimiento.vencido, mantenimiento.proximo)}{' '}
           <Link href="/soporte/mantenimiento" className="font-semibold underline underline-offset-4">
             Ver mantenimiento
+          </Link>
+        </Aviso>
+      ) : null}
+
+      {porComprar ? (
+        <Aviso tipo="info">
+          {plural(porComprar, 'repuesto está agotado o bajo', 'repuestos están agotados o bajo')} el mínimo.{' '}
+          <Link href="/soporte/repuestos" className="font-semibold underline underline-offset-4">
+            Ver repuestos
           </Link>
         </Aviso>
       ) : null}

@@ -6,6 +6,7 @@ import { plural, textoAntiguedad } from '@/lib/formato';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { InsigniaEstadoIncidencia } from './InsigniaEstadoIncidencia';
 import { InsigniaPrioridad } from './InsigniasClasificacion';
+import { InsigniaSla } from './InsigniaSla';
 
 type Props = { incidencias: FilaIncidencia[]; total: number };
 
@@ -39,6 +40,7 @@ export function PendientesAtencion({ incidencias, total }: Props) {
                   <span className="font-semibold tabular-nums text-texto group-hover:text-primario">{incidencia.numeroCaso}</span>
                   <InsigniaEstadoIncidencia estado={incidencia.estado} />
                   {incidencia.prioridad === 'alta' ? <InsigniaPrioridad prioridad="alta" /> : null}
+                  <InsigniaSla caso={incidencia} />
                 </span>
                 <span className="min-w-0 truncate text-sm text-texto-suave">
                   <span className="font-medium text-primario">{incidencia.equipoCodigo}</span> · {incidencia.descripcion}

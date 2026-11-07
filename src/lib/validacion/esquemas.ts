@@ -6,7 +6,12 @@ import {
   LARGO_MAXIMO_COMENTARIO,
   LARGO_MAXIMO_NOTAS_MANTENIMIENTO,
   LARGO_MINIMO_COMENTARIO,
+  MAXIMO_CANTIDAD_REPUESTO,
+  MAXIMO_COLUMNAS_MAPA,
   MAXIMO_DIAS_MANTENIMIENTO,
+  MAXIMO_EXISTENCIAS_REPUESTO,
+  MAXIMO_FILAS_MAPA,
+  MINIMO_COLUMNAS_MAPA,
   MINIMO_DIAS_MANTENIMIENTO,
   PRIORIDADES_INCIDENCIA,
 } from '@/lib/config/soporte';
@@ -139,6 +144,54 @@ export const esquemaBusquedaGlobal = z.object({
 // Identificador de una ruta dinámica (/salas/[id], /tecnicos/[id]). Sin esto, un id mal formado
 // llegaba a Postgres y respondía ERROR_INTERNO (500) en vez de un 400.
 export const esquemaId = z.uuid('Identificador no válido.');
+
+// Mapa de la sala (M12): puesto de un equipo y ancho del mapa.
+export const esquemaPuesto = z.object({
+  fila: z.number().int().min(1).max(MAXIMO_FILAS_MAPA),
+  columna: z.number().int().min(1).max(MAXIMO_COLUMNAS_MAPA),
+});
+
+export const esquemaColumnasMapa = z.object({
+  columnas: z
+    .number()
+    .int()
+    .min(MINIMO_COLUMNAS_MAPA, `Mínimo ${MINIMO_COLUMNAS_MAPA} columnas.`)
+    .max(MAXIMO_COLUMNAS_MAPA, `Máximo ${MAXIMO_COLUMNAS_MAPA} columnas.`),
+});
+
+// Repuestos (M13).
+const existencias = z
+  .number()
+  .int('Escriba un número entero.')
+  .min(0, 'No puede ser negativo.')
+  .max(MAXIMO_EXISTENCIAS_REPUESTO, `Máximo ${MAXIMO_EXISTENCIAS_REPUESTO}.`);
+const cantidad = z
+  .number()
+  .int('Escriba un número entero.')
+  .min(1, 'Mínimo 1.')
+  .max(MAXIMO_CANTIDAD_REPUESTO, `Máximo ${MAXIMO_CANTIDAD_REPUESTO}.`);
+
+export const esquemaRepuesto = z.object({
+  nombre: z.string().trim().min(2, 'Escriba al menos 2 caracteres.').max(80),
+  existencias,
+  minimo: existencias,
+});
+
+export const esquemaActualizarRepuesto = z
+  .object({ entrada: cantidad.optional(), minimo: existencias.optional() })
+  .refine((datos) => datos.entrada !== undefined || datos.minimo !== undefined, {
+    message: 'Indique la entrada o el mínimo.',
+  });
+
+export const esquemaUsoRepuesto = z.object({ repuestoId: z.uuid('Seleccione un repuesto.'), cantidad });
+
+// Notificaciones push (M14): la suscripción que entrega el navegador (PushSubscription.toJSON()).
+export const esquemaSuscripcionPush = z.object({
+  endpoint: z.url().startsWith('https://').max(1000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+});
+
+export const esquemaBajaPush = z.object({ endpoint: z.url().max(1000) });
 
 export type DatosSala = z.infer<typeof esquemaSala>;
 export type DatosEquipo = z.infer<typeof esquemaEquipo>;

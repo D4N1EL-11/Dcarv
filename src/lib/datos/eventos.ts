@@ -28,7 +28,11 @@ export type AccionEvento =
   | 'solicitud_aprobada'
   | 'solicitud_rechazada'
   | 'mantenimiento_programado'
-  | 'mantenimiento_realizado';
+  | 'mantenimiento_realizado'
+  | 'equipo_movido'
+  | 'repuesto_registrado'
+  | 'repuesto_entrada'
+  | 'repuesto_usado';
 
 export type FilaEvento = {
   id: number;

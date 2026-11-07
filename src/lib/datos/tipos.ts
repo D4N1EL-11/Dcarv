@@ -41,6 +41,9 @@ export type FilaIncidencia = {
   prioridad: PrioridadIncidencia;
   // Comentarios de la conversación del caso (incluida la nota de cierre).
   comentarios: number;
+  // Momento del reporte y del cierre (ISO 8601 en UTC): base de los tiempos de atención (SLA).
+  creadaEn: string;
+  cerradaEn: string | null;
 };
 
 // Ficha de un caso: la fila del listado más su sala y quién y cuándo lo reportó.
@@ -48,7 +51,6 @@ export type FichaCaso = FilaIncidencia & {
   sala: string;
   salaId: string;
   reportadoPorId: string | null;
-  creadaEn: string; // ISO 8601 en UTC
 };
 
 export type DetalleEquipo = { equipo: FilaEquipo; historial: FilaIncidencia[] };

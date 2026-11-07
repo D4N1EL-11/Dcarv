@@ -80,6 +80,8 @@ const API_REPORTE: { metodo: string; patron: RegExp }[] = [
   { metodo: 'GET', patron: /^\/api\/soporte\/avisos$/ },
   { metodo: 'POST', patron: /^\/api\/soporte\/avisos\/leidos$/ },
   { metodo: 'POST', patron: /^\/api\/soporte\/cuenta\/solicitud$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/push$/ },
+  { metodo: 'DELETE', patron: /^\/api\/soporte\/push$/ },
 ];
 
 export function puedeUsarApi(rol: Rol, metodo: string, ruta: string): boolean {

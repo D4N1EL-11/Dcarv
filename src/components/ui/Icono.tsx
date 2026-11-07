@@ -43,6 +43,14 @@ const TRAZOS = {
   izquierda: 'M15 6l-6 6 6 6',
   prioridad: 'M12 3v12M12 19h.01',
   qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2v2M18 18h2v2h-2',
+  mapa: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+  repuesto: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  monitor: 'M2 4h20v13H2zM8 21h8M12 17v4M6 13l3-3 3 2 5-5',
+  pantallaCompleta: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5',
+  sol: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+  luna: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
+  notificacion: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4M19 3l2-2',
+  editar: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
 } as const;
 
 export type NombreIcono = keyof typeof TRAZOS;

@@ -1,7 +1,8 @@
 import type { PoolClient } from 'pg';
 import { actorActual } from '@/lib/auth/contexto';
-import { consultar, crearParametros } from '@/lib/db/conexion';
+import { consultar, crearParametros, despuesDeConfirmar } from '@/lib/db/conexion';
 import type { NuevoAviso, TipoAviso } from '@/lib/reglas/avisos';
+import { programarPush } from './push';
 
 // Avisos de la campana (M9). Se escriben con la transacción (tx) del cambio que los origina: si el
 // cambio se revierte, el aviso también. Nadie recibe aviso de lo que hizo él mismo.
@@ -22,30 +23,36 @@ const COLUMNAS = `id, tipo, titulo, detalle, enlace, (leido_en IS NOT NULL) AS l
 function insertarPara(destinatarios: string, aviso: NuevoAviso, extra: unknown[]): [string, unknown[]] {
   return [
     `INSERT INTO avisos (usuario_id, tipo, titulo, detalle, enlace)
-     SELECT u.id, $1, $2, $3, $4 FROM public.users u WHERE ${destinatarios}`,
+     SELECT u.id, $1, $2, $3, $4 FROM public.users u WHERE ${destinatarios}
+     RETURNING usuario_id`,
     [aviso.tipo, aviso.titulo, aviso.detalle, aviso.enlace, ...extra],
   ];
+}
+
+// Guarda el aviso y, cuando la transacción se confirme, lo envía como push (lib/datos/push.ts).
+async function insertar(tx: PoolClient, destinatarios: string, aviso: NuevoAviso, extra: unknown[]): Promise<void> {
+  const { rows } = await tx.query<{ usuario_id: string }>(...insertarPara(destinatarios, aviso, extra));
+  const ids = rows.map((fila) => fila.usuario_id);
+  if (ids.length) despuesDeConfirmar(tx, () => programarPush(ids, aviso));
 }
 
 // A una cuenta concreta (por ejemplo, quien reportó el caso). Sin destinatario o si es quien
 // actúa, no se escribe nada.
 export async function avisarA(tx: PoolClient, usuarioId: string | null | undefined, aviso: NuevoAviso): Promise<void> {
   if (!usuarioId || usuarioId === actorActual()?.id) return;
-  await tx.query(...insertarPara('u.id = $5', aviso, [usuarioId]));
+  await insertar(tx, 'u.id = $5', aviso, [usuarioId]);
 }
 
 // A todo el equipo de soporte (administradores y soporte técnico), menos quien actúa.
 export async function avisarASoporte(tx: PoolClient, aviso: NuevoAviso): Promise<void> {
   const actor = actorActual()?.id ?? null;
-  await tx.query(
-    ...insertarPara(`u.role IN ('admin', 'editor') AND ($5::uuid IS NULL OR u.id <> $5::uuid)`, aviso, [actor]),
-  );
+  await insertar(tx, `u.role IN ('admin', 'editor') AND ($5::uuid IS NULL OR u.id <> $5::uuid)`, aviso, [actor]);
 }
 
 // Solo a los administradores (solicitudes de acceso de soporte).
 export async function avisarAAdministradores(tx: PoolClient, aviso: NuevoAviso): Promise<void> {
   const actor = actorActual()?.id ?? null;
-  await tx.query(...insertarPara(`u.role = 'admin' AND ($5::uuid IS NULL OR u.id <> $5::uuid)`, aviso, [actor]));
+  await insertar(tx, `u.role = 'admin' AND ($5::uuid IS NULL OR u.id <> $5::uuid)`, aviso, [actor]);
 }
 
 export type ResumenAvisos = { sinLeer: number; avisos: FilaAviso[] };

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import './globals.css';
 import { RegistrarServiceWorker } from '@/components/pwa/RegistrarServiceWorker';
+import { SCRIPT_TEMA } from '@/lib/tema';
 
 const fuenteTitulos = Cormorant_Garamond({
   subsets: ['latin'],
@@ -22,11 +23,15 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-export const viewport: Viewport = { themeColor: '#111214', colorScheme: 'dark' };
+export const viewport: Viewport = { themeColor: '#111214', colorScheme: 'dark light' };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${fuenteTitulos.variable} ${fuenteTexto.variable}`}>
+    // suppressHydrationWarning: el script de tema agrega data-tema antes de que React hidrate.
+    <html lang="es" className={`${fuenteTitulos.variable} ${fuenteTexto.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body>
         {children}
         <RegistrarServiceWorker />
