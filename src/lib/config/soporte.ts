@@ -48,3 +48,22 @@ export const SEGUNDOS_REFRESCO_MONITOR = 30;
 // Repuestos (M13).
 export const MAXIMO_CANTIDAD_REPUESTO = 100; // por registro de uso o de entrada
 export const MAXIMO_EXISTENCIAS_REPUESTO = 100_000;
+
+// Hoja de vida de los equipos (M15).
+export const ANIOS_OBSOLESCENCIA = 5; // desde la compra, el equipo se marca para renovar
+export const DIAS_AVISO_GARANTIA = 60; // "Por vencer": la garantía termina dentro de estos días
+
+// Calificación del servicio (M16).
+export const LARGO_MAXIMO_COMENTARIO_CALIFICACION = 500;
+
+// Base de conocimiento (M17).
+export const LARGO_MAXIMO_ARTICULO = 5000;
+export const GUIAS_SUGERIDAS = 3; // al reportar una falla
+
+// Analítica.
+export const DIAS_ANALITICA = 90; // ventana del mapa de calor y del riesgo de falla
+export const DIAS_MTBF = 180; // ventana para el tiempo medio entre fallas
+
+// Asistente con IA (lib/ia.ts). Sin ANTHROPIC_API_KEY las opciones de IA no aparecen.
+export const MODELO_IA = 'claude-opus-5-5';
+export const CASOS_SIMILARES_IA = 5;

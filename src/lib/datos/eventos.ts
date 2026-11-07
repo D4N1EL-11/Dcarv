@@ -32,7 +32,12 @@ export type AccionEvento =
   | 'equipo_movido'
   | 'repuesto_registrado'
   | 'repuesto_entrada'
-  | 'repuesto_usado';
+  | 'repuesto_usado'
+  | 'hoja_de_vida'
+  | 'caso_calificado'
+  | 'articulo_publicado'
+  | 'articulo_editado'
+  | 'articulo_eliminado';
 
 export type FilaEvento = {
   id: number;

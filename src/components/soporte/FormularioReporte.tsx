@@ -21,6 +21,7 @@ import {
 } from '@/lib/reglas/clasificacion';
 import { ETIQUETA_INCIDENCIA, type EstadoIncidencia } from '@/lib/reglas/incidencia';
 import { esquemaIncidencia } from '@/lib/validacion/esquemas';
+import { AyudaReporte } from './AyudaReporte';
 import { SelectorCategoria } from './SelectorCategoria';
 import { SelectorFoto } from './SelectorFoto';
 
@@ -34,13 +35,15 @@ type Props = {
   equipoInicial: string | null;
   // Soporte también fija la prioridad; una cuenta de reporte no la elige.
   soporte?: boolean;
+  // Asistente con IA configurado en el servidor (sugiere el tipo de falla).
+  iaDisponible?: boolean;
 };
 
 type Enviado = { numeroCaso: string; codigo: string; estadoEquipo: EstadoEquipo; avisoFoto: string | null };
 
 const MAXIMO = 1000;
 
-export function FormularioReporte({ salas, equipos, pendientes, equipoInicial, soporte = false }: Props) {
+export function FormularioReporte({ salas, equipos, pendientes, equipoInicial, soporte = false, iaDisponible = false }: Props) {
   const router = useRouter();
   const inicial = equipos.find((e) => e.codigo === equipoInicial) ?? null;
   // Desde el QR de un equipo, el equipo ya viene elegido; se puede cambiar.
@@ -220,6 +223,16 @@ export function FormularioReporte({ salas, equipos, pendientes, equipoInicial, s
         <p className="text-right text-xs text-texto-suave">
           {descripcion.length}/{MAXIMO}
         </p>
+        <AyudaReporte
+          descripcion={descripcion}
+          soporte={soporte}
+          iaDisponible={iaDisponible}
+          alAplicar={(sugerida, prioridadSugerida) => {
+            setCategoria(sugerida);
+            if (soporte) setPrioridad(prioridadSugerida);
+            setError('');
+          }}
+        />
         <SelectorFoto archivo={foto} alCambiar={setFoto} deshabilitado={enviando} />
       </fieldset>
 

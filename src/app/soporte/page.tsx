@@ -137,6 +137,9 @@ export default async function PanelSoporte({ searchParams }: Props) {
         <Link href="/soporte/informe" className={`${clasesBoton('secundario')} gap-2`}>
           <Icono nombre="informe" /> Informe del mes
         </Link>
+        <Link href="/soporte/analitica" className={`${clasesBoton('secundario')} gap-2`}>
+          <Icono nombre="analitica" /> Analítica
+        </Link>
         <Link href="/monitor" className={`${clasesBoton('secundario')} gap-2`} title="Pantalla para la oficina de soporte">
           <Icono nombre="monitor" /> Modo monitor
         </Link>

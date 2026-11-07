@@ -146,6 +146,16 @@ export function textoEvento(evento: EventoParaTexto): string {
       return `registró el repuesto ${detalle}`;
     case 'repuesto_entrada':
       return `registró una entrada de ${detalle}`;
+    case 'hoja_de_vida':
+      return `actualizó la hoja de vida de ${equipo ?? 'un equipo'}`;
+    case 'caso_calificado':
+      return `calificó la atención de ${caso ?? 'un caso'}: ${detalle}`;
+    case 'articulo_publicado':
+      return `publicó la guía "${detalle}"`;
+    case 'articulo_editado':
+      return `editó la guía "${detalle}"`;
+    case 'articulo_eliminado':
+      return `eliminó la guía "${detalle}"`;
     case 'repuesto_usado':
       return `usó ${detalle} en ${caso ?? 'una incidencia'}${en}`;
     default:

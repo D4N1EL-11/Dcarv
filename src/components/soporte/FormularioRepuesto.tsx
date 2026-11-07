@@ -15,12 +15,18 @@ export function FormularioRepuesto() {
   const [nombre, setNombre] = useState('');
   const [existencias, setExistencias] = useState('0');
   const [minimo, setMinimo] = useState('1');
+  const [costo, setCosto] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 
   async function enviar(evento: FormEvent) {
     evento.preventDefault();
-    const datos = { nombre, existencias: Number(existencias), minimo: Number(minimo) };
+    const datos = {
+      nombre,
+      existencias: Number(existencias),
+      minimo: Number(minimo),
+      ...(costo.trim() ? { costoUnitario: Number(costo) } : {}),
+    };
     const validacion = esquemaRepuesto.safeParse(datos);
     if (!validacion.success) {
       setError(validacion.error.issues[0]?.message ?? 'Revise los datos ingresados.');
@@ -36,6 +42,7 @@ export function FormularioRepuesto() {
     setError('');
     setNombre('');
     setExistencias('0');
+    setCosto('');
     mostrar('exito', `${validacion.data.nombre} quedó registrado.`);
     refrescar();
   }
@@ -63,7 +70,18 @@ export function FormularioRepuesto() {
         />
         <Campo etiqueta="Mínimo" type="number" min={0} value={minimo} onChange={(evento) => setMinimo(evento.target.value)} />
       </div>
-      <p className="text-xs text-texto-suave">Por debajo del mínimo el repuesto se marca para compra.</p>
+      <Campo
+        etiqueta="Costo por unidad (COP, opcional)"
+        type="number"
+        min={0}
+        step="any"
+        placeholder="Ej.: 180000"
+        value={costo}
+        onChange={(evento) => setCosto(evento.target.value)}
+      />
+      <p className="text-xs text-texto-suave">
+        Por debajo del mínimo el repuesto se marca para compra. Con el costo se calcula lo invertido en reparar cada equipo.
+      </p>
       <Boton type="submit" cargando={cargando || refrescando}>
         Registrar repuesto
       </Boton>

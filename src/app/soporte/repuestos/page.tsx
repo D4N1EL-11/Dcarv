@@ -14,6 +14,8 @@ import { bajoMinimo } from '@/lib/reglas/repuesto';
 
 export const metadata: Metadata = { title: 'Repuestos' };
 
+const formatoPesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
 // Bodega de repuestos: existencias, mínimo y consumo reciente. Lo que hay que comprar va primero.
 export default async function PaginaRepuestos() {
   await soloSoporte();
@@ -81,8 +83,11 @@ export default async function PaginaRepuestos() {
                           </div>
                         ))}
                       </dl>
-                      <div className="flex justify-end">
-                        <AccionesRepuesto id={r.id} nombre={r.nombre} minimo={r.minimo} />
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-texto-suave">
+                          {r.costoUnitario ? `${formatoPesos.format(r.costoUnitario)} por unidad` : 'Sin costo registrado'}
+                        </span>
+                        <AccionesRepuesto id={r.id} nombre={r.nombre} minimo={r.minimo} costo={r.costoUnitario} />
                       </div>
                     </Tarjeta>
                   </li>

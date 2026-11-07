@@ -3,9 +3,10 @@
 import { useEffect, useId, useRef } from 'react';
 import { Icono } from './Icono';
 
-type Props = { titulo: string; alCerrar: () => void; children: React.ReactNode };
+// amplio: formularios largos (editar una guía, la hoja de vida de un equipo).
+type Props = { titulo: string; alCerrar: () => void; children: React.ReactNode; amplio?: boolean };
 
-export function Modal({ titulo, alCerrar, children }: Props) {
+export function Modal({ titulo, alCerrar, children, amplio = false }: Props) {
   const idTitulo = useId();
   const panel = useRef<HTMLDivElement>(null);
   // Guardar la función en una referencia evita volver a enfocar el panel en cada render.
@@ -44,7 +45,7 @@ export function Modal({ titulo, alCerrar, children }: Props) {
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="w-full max-w-md animate-aparecer rounded-2xl border border-borde bg-superficie p-6 text-left text-texto shadow-2xl shadow-black/60 focus:outline-none"
+        className={`w-full ${amplio ? 'max-h-[90dvh] max-w-2xl overflow-y-auto' : 'max-w-md'} animate-aparecer rounded-2xl border border-borde bg-superficie p-6 text-left text-texto shadow-2xl shadow-black/60 focus:outline-none`}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 id={idTitulo} className="text-2xl font-semibold leading-tight">

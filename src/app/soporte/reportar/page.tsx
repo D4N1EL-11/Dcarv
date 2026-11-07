@@ -6,6 +6,7 @@ import { EstadoVacio } from '@/components/ui/EstadoVacio';
 import { esSoporte } from '@/lib/auth/permisos';
 import { obtenerSesion } from '@/lib/auth/sesion';
 import { incidenciasPendientes, listarEquipos, listarSalas } from '@/lib/dataService';
+import { iaConfigurada } from '@/lib/ia';
 import { normalizarCodigo } from '@/lib/reglas/equipo';
 
 export const metadata: Metadata = { title: 'Reportar una falla' };
@@ -61,6 +62,7 @@ export default async function PaginaReportar({ searchParams }: Props) {
             pendientes={porEquipo}
             equipoInicial={pedido}
             soporte={Boolean(sesion && esSoporte(sesion.rol))}
+            iaDisponible={iaConfigurada()}
           />
         </div>
       ) : (

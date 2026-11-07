@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 - 2026-11-07
+
+Funcionalidades:
+
+- Asistente con IA (Claude, `claude-opus-5-5`): sugiere el tipo de falla (y la prioridad, para soporte) mientras se reporta; en la ficha del caso, sugiere una solución a partir de casos cerrados parecidos y de las guías, y resume el caso. Requiere `ANTHROPIC_API_KEY`; sin ella las opciones no aparecen.
+- Hoja de vida técnica de cada equipo (especificaciones, serie, compra y garantía), con avisos de garantías por vencer y equipos para renovar en Alertas, y costo acumulado de reparaciones según los repuestos usados (nuevo costo unitario en Repuestos). Migración M15.
+- Calificación del servicio: quien reportó califica la atención de 1 a 5 estrellas al cerrarse el caso; satisfacción del mes y por técnico en el informe mensual. Migración M16.
+- Analítica (`/soporte/analitica`): mapa de calor de reportes por día y hora, equipos con riesgo de falla, MTBF y tendencia de cada sala.
+- Base de conocimiento (`/soporte/conocimiento`): guías de solución con búsqueda en español y votos "¿le sirvió?"; se sugieren al reportar una falla. Migración M17.
+- Inicio de sesión con la cuenta institucional (Microsoft o Google) vía Supabase Auth con PKCE, activable con `NEXT_PUBLIC_OAUTH_PROVEEDOR`.
+
 ## 0.6.0 - 2026-11-07
 
 Funcionalidades:

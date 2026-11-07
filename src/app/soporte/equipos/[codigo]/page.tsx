@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { EditarHojaDeVida } from '@/components/soporte/EditarHojaDeVida';
 import { FormularioIncidencia } from '@/components/soporte/FormularioIncidencia';
 import { HistorialIncidencias } from '@/components/soporte/HistorialIncidencias';
 import { ListaEventos } from '@/components/soporte/ListaEventos';
@@ -12,16 +13,27 @@ import { Aviso } from '@/components/ui/Aviso';
 import { BotonImprimir } from '@/components/ui/BotonImprimir';
 import { clasesBoton } from '@/components/ui/Boton';
 import { Icono } from '@/components/ui/Icono';
+import { Insignia, type TonoInsignia } from '@/components/ui/Insignia';
 import { EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Tarjeta } from '@/components/ui/Tarjeta';
 import { DIAS_VENTANA_ALERTA } from '@/lib/config/soporte';
 import { tecnicosDeLaPeticion } from '@/lib/consultasDePagina';
-import { eventosDeEquipo, listarSalas, obtenerEquipo, type DetalleEquipo } from '@/lib/dataService';
+import { eventosDeEquipo, listarSalas, obtenerEquipo, obtenerHojaDeVida, type DetalleEquipo } from '@/lib/dataService';
 import { etiquetaEstadoEquipo, formatearFecha, plural } from '@/lib/formato';
 import { esCandidatoABaja } from '@/lib/reglas/alertas';
 import { normalizarCodigo } from '@/lib/reglas/equipo';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota } from '@/lib/reglas/fechas';
+import { antiguedadAnios, esObsoleto, estadoGarantia, ETIQUETA_GARANTIA, type EstadoGarantia } from '@/lib/reglas/hojaDeVida';
+
+const TONO_GARANTIA: Record<EstadoGarantia, TonoInsignia> = {
+  sin_dato: 'neutro',
+  vigente: 'funcional',
+  por_vencer: 'reparacion',
+  vencida: 'baja',
+};
+
+const formatoPesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 import { soloSoporte } from '@/lib/auth/sesion';
 
 type Props = {
@@ -56,12 +68,17 @@ export default async function DetalleDeEquipo({ params, searchParams }: Props) {
   await soloSoporte();
   const { codigo } = await params;
   const { caso } = await searchParams;
-  const [{ equipo, historial }, tecnicos, salas, eventos] = await Promise.all([
+  const [{ equipo, historial }, tecnicos, salas, eventos, hoja] = await Promise.all([
     cargar(codigo),
     tecnicosDeLaPeticion(),
     listarSalas(),
     eventosDeEquipo(normalizarCodigo(decodeURIComponent(codigo)), 21),
+    obtenerHojaDeVida(decodeURIComponent(codigo)),
   ]);
+  const hoy = hoyBogota();
+  const garantia = estadoGarantia(hoja.garantiaHasta, hoy);
+  const anios = antiguedadAnios(hoja.fechaCompra, hoy);
+  const sinDato = <span className="italic text-texto-suave">Sin dato</span>;
 
   const reportada = historial.find((incidencia) => incidencia.numeroCaso === caso);
   const pendientes = historial.filter((i) => i.estado !== 'cerrada').length;
@@ -119,6 +136,62 @@ export default async function DetalleDeEquipo({ params, searchParams }: Props) {
           <SelectorEstadoEquipo codigo={equipo.codigo} estado={equipo.estado} />
         </div>
       </Tarjeta>
+
+      <section aria-labelledby="titulo-ficha" className="grid gap-5">
+        <TituloSeccion id="titulo-ficha" titulo="Ficha técnica">
+          <span className="print:hidden">
+            <EditarHojaDeVida
+              codigo={equipo.codigo}
+              hoja={{
+                marcaModelo: hoja.marcaModelo,
+                procesador: hoja.procesador,
+                ramGb: hoja.ramGb,
+                discoGb: hoja.discoGb,
+                sistemaOperativo: hoja.sistemaOperativo,
+                numeroSerie: hoja.numeroSerie,
+                fechaCompra: hoja.fechaCompra,
+                garantiaHasta: hoja.garantiaHasta,
+              }}
+            />
+          </span>
+        </TituloSeccion>
+        <Tarjeta>
+          <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3 xl:grid-cols-5">
+            <Dato titulo="Marca y modelo">{hoja.marcaModelo ?? sinDato}</Dato>
+            <Dato titulo="Número de serie">{hoja.numeroSerie ?? sinDato}</Dato>
+            <Dato titulo="Procesador">{hoja.procesador ?? sinDato}</Dato>
+            <Dato titulo="Memoria y disco">
+              {hoja.ramGb || hoja.discoGb ? `${hoja.ramGb ? `${hoja.ramGb} GB RAM` : '—'} · ${hoja.discoGb ? `${hoja.discoGb} GB` : '—'}` : sinDato}
+            </Dato>
+            <Dato titulo="Sistema operativo">{hoja.sistemaOperativo ?? sinDato}</Dato>
+            <Dato titulo="Compra">
+              {hoja.fechaCompra ? (
+                <>
+                  {formatearFecha(hoja.fechaCompra)}
+                  <span className="block text-xs text-texto-suave">
+                    {anios === 0 ? 'menos de un año de uso' : `${anios} ${anios === 1 ? 'año' : 'años'} de uso`}
+                  </span>
+                </>
+              ) : (
+                sinDato
+              )}
+            </Dato>
+            <Dato titulo="Garantía">
+              <span className="grid gap-1">
+                <Insignia tono={TONO_GARANTIA[garantia]} texto={ETIQUETA_GARANTIA[garantia]} />
+                {hoja.garantiaHasta ? <span className="text-xs text-texto-suave">hasta {formatearFecha(hoja.garantiaHasta)}</span> : null}
+              </span>
+            </Dato>
+            <Dato titulo="Renovación">
+              {esObsoleto(hoja.fechaCompra, hoy) ? <Insignia tono="reparacion" texto="Para renovar" /> : hoja.fechaCompra ? 'Vigente' : sinDato}
+            </Dato>
+            <Dato titulo="Costo de reparaciones">
+              {formatoPesos.format(hoja.costoReparaciones)}
+              <span className="block text-xs text-texto-suave">{plural(hoja.repuestosUsados, 'repuesto usado', 'repuestos usados')}</span>
+            </Dato>
+          </dl>
+        </Tarjeta>
+      </section>
 
       {candidato ? (
         <Aviso tipo="advertencia">

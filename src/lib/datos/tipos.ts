@@ -51,6 +51,9 @@ export type FichaCaso = FilaIncidencia & {
   sala: string;
   salaId: string;
   reportadoPorId: string | null;
+  // Calificación del servicio de quien reportó (null mientras no califique).
+  calificacion: number | null;
+  calificacionComentario: string | null;
 };
 
 export type DetalleEquipo = { equipo: FilaEquipo; historial: FilaIncidencia[] };

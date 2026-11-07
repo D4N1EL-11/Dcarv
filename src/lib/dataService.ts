@@ -22,6 +22,21 @@ export {
 } from '@/lib/datos/repuestos';
 export type { FilaRepuesto, RepuestoUsado } from '@/lib/datos/repuestos';
 export { borrarSuscripcion, guardarSuscripcion, pushConfigurado } from '@/lib/datos/push';
+export { actualizarHojaDeVida, avisosDeHojaDeVida, obtenerHojaDeVida } from '@/lib/datos/hojaDeVida';
+export type { AvisoEquipo, FichaTecnica } from '@/lib/datos/hojaDeVida';
+export { calificarIncidencia } from '@/lib/datos/calificaciones';
+export {
+	buscarArticulos,
+	casosSimilares,
+	crearArticulo,
+	editarArticulo,
+	eliminarArticulo,
+	obtenerArticulo,
+	votarArticulo,
+} from '@/lib/datos/conocimiento';
+export type { Articulo, CasoSimilar, DatosArticulo } from '@/lib/datos/conocimiento';
+export { mapaDeCalor, riesgoDeEquipos, tendenciaDeSalas } from '@/lib/datos/analitica';
+export type { MapaDeCalor, RiesgoEquipo, TendenciaSala } from '@/lib/datos/analitica';
 export type { SuscripcionPush } from '@/lib/datos/push';
 export { actividadReciente, serieActividad } from '@/lib/datos/panel';
 export type { EventoActividad } from '@/lib/datos/panel';
@@ -60,6 +75,7 @@ export type {
 	FilaEquipoInforme,
 	FilaSalaInforme,
 	FilaSlaInforme,
+	SatisfaccionInforme,
 	FilaTecnicoInforme,
 	Informe,
 	ResumenMes,

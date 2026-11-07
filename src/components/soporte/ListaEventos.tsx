@@ -31,6 +31,11 @@ const ICONO: Record<AccionEvento, NombreIcono> = {
   repuesto_registrado: 'repuesto',
   repuesto_entrada: 'repuesto',
   repuesto_usado: 'repuesto',
+  hoja_de_vida: 'equipo',
+  caso_calificado: 'estrella',
+  articulo_publicado: 'libro',
+  articulo_editado: 'libro',
+  articulo_eliminado: 'libro',
 };
 
 const formatoMomento = new Intl.DateTimeFormat('es-CO', {
@@ -45,6 +50,7 @@ function enlaceDe(evento: FilaEvento): string | null {
   if (evento.equipoCodigo) return `/soporte/equipos/${encodeURIComponent(evento.equipoCodigo)}`;
   if (evento.accion.startsWith('mantenimiento_')) return '/soporte/mantenimiento';
   if (evento.accion.startsWith('repuesto_')) return '/soporte/repuestos';
+  if (evento.accion === 'articulo_publicado' || evento.accion === 'articulo_editado') return '/soporte/conocimiento';
   return null;
 }
 

@@ -3,7 +3,7 @@ import { DIAS_VENTANA_ALERTA } from '@/lib/config/soporte';
 import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
 import { hoyBogota, inicioVentana } from '@/lib/reglas/fechas';
-import { validarCantidad, validarExistencias, validarNombreRepuesto } from '@/lib/reglas/repuesto';
+import { validarCantidad, validarCosto, validarExistencias, validarNombreRepuesto } from '@/lib/reglas/repuesto';
 import { ACTOR_SISTEMA, registrarEvento } from './eventos';
 
 // Repuestos (M13): existencias en bodega y piezas usadas en cada caso. Usar un repuesto descuenta
@@ -14,6 +14,7 @@ export type FilaRepuesto = {
   nombre: string;
   existencias: number;
   minimo: number;
+  costoUnitario: number; // pesos; 0 = sin dato
   // Unidades usadas en los últimos 30 días (RN-09: la misma ventana del resto del módulo).
   usados30d: number;
 };
@@ -28,7 +29,7 @@ export type RepuestoUsado = {
 
 export function listarRepuestos(): Promise<FilaRepuesto[]> {
   return consultar<FilaRepuesto>(
-    `SELECT r.id, r.nombre, r.existencias, r.minimo,
+    `SELECT r.id, r.nombre, r.existencias, r.minimo, r.costo_unitario::float8 AS "costoUnitario",
             COALESCE((SELECT SUM(u.cantidad) FROM repuestos_usados u
                        WHERE u.repuesto_id = r.id AND u.creado_en >= $1::date), 0)::int AS "usados30d"
        FROM repuestos r
@@ -44,29 +45,40 @@ export async function contarBajoMinimo(): Promise<number> {
   return fila?.total ?? 0;
 }
 
-export async function crearRepuesto(d: { nombre: string; existencias: number; minimo: number }): Promise<{ id: string }> {
+export async function crearRepuesto(d: {
+  nombre: string;
+  existencias: number;
+  minimo: number;
+  costoUnitario?: number | undefined;
+}): Promise<{ id: string }> {
   const nombre = validarNombreRepuesto(d.nombre);
   const existencias = validarExistencias(d.existencias);
   const minimo = validarExistencias(d.minimo, 'El mínimo debe');
+  const costo = validarCosto(d.costoUnitario ?? 0);
   return conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ id: string }>(
-      'INSERT INTO repuestos (nombre, existencias, minimo) VALUES ($1, $2, $3) RETURNING id',
-      [nombre, existencias, minimo],
+      'INSERT INTO repuestos (nombre, existencias, minimo, costo_unitario) VALUES ($1, $2, $3, $4) RETURNING id',
+      [nombre, existencias, minimo, costo],
     );
     await registrarEvento(tx, { accion: 'repuesto_registrado', detalle: `${nombre} (${existencias} en bodega)` });
     return rows[0]!;
   });
 }
 
-// Entrada a bodega (compra o devolución) y/o cambio del mínimo.
-export async function actualizarRepuesto(id: string, d: { entrada?: number | undefined; minimo?: number | undefined }) {
+// Entrada a bodega (compra o devolución), cambio del mínimo y/o del costo unitario.
+export async function actualizarRepuesto(
+  id: string,
+  d: { entrada?: number | undefined; minimo?: number | undefined; costoUnitario?: number | undefined },
+) {
   const entrada = d.entrada === undefined ? 0 : validarCantidad(d.entrada);
   const minimo = d.minimo === undefined ? undefined : validarExistencias(d.minimo, 'El mínimo debe');
+  const costo = d.costoUnitario === undefined ? undefined : validarCosto(d.costoUnitario);
   await conTransaccion(async (tx) => {
     const { rows } = await tx.query<{ nombre: string; existencias: number }>(
-      `UPDATE repuestos SET existencias = existencias + $2, minimo = COALESCE($3, minimo)
+      `UPDATE repuestos SET existencias = existencias + $2, minimo = COALESCE($3, minimo),
+              costo_unitario = COALESCE($4, costo_unitario)
         WHERE id = $1 RETURNING nombre, existencias`,
-      [id, entrada, minimo ?? null],
+      [id, entrada, minimo ?? null, costo ?? null],
     );
     if (!rows[0]) throw new ErrorDeNegocio('REPUESTO_NO_ENCONTRADO');
     if (entrada) {
@@ -101,8 +113,10 @@ export async function usarRepuesto(numeroCaso: string, repuestoId: string, canti
       throw new ErrorDeNegocio('SIN_EXISTENCIAS', `Solo ${existencias === 1 ? 'queda 1 unidad' : `quedan ${existencias} unidades`} de ${nombre}.`);
     }
     await tx.query('UPDATE repuestos SET existencias = existencias - $1 WHERE id = $2', [cantidad, repuestoId]);
+    // El costo se congela: si después cambia el precio, esta reparación no cambia.
     await tx.query(
-      'INSERT INTO repuestos_usados (incidencia_id, repuesto_id, cantidad, registrado_por) VALUES ($1, $2, $3, $4)',
+      `INSERT INTO repuestos_usados (incidencia_id, repuesto_id, cantidad, registrado_por, costo_unitario)
+       SELECT $1, $2, $3, $4, costo_unitario FROM repuestos WHERE id = $2`,
       [incidencia.id, repuestoId, cantidad, actorActual()?.email ?? ACTOR_SISTEMA],
     );
     await registrarEvento(tx, {

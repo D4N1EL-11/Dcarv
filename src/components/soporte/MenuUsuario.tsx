@@ -82,6 +82,14 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
               </Link>
             ) : null}
             {esSoporte(rol) ? (
+              <Link role="menuitem" href="/soporte/analitica" className={CLASES_OPCION}>
+                <Icono nombre="analitica" className="size-4 text-texto-suave" /> Analítica
+              </Link>
+            ) : null}
+            <Link role="menuitem" href="/soporte/conocimiento" className={CLASES_OPCION}>
+              <Icono nombre="libro" className="size-4 text-texto-suave" /> Base de conocimiento
+            </Link>
+            {esSoporte(rol) ? (
               <Link role="menuitem" href="/soporte/repuestos" className={CLASES_OPCION}>
                 <Icono nombre="repuesto" className="size-4 text-texto-suave" /> Repuestos
               </Link>

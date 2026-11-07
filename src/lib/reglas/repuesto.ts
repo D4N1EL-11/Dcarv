@@ -27,6 +27,14 @@ export function validarExistencias(valor: number, sujeto = 'Las existencias debe
   return valor;
 }
 
+// Costo unitario en pesos (0 = sin dato), con hasta dos decimales.
+export function validarCosto(costo: number): number {
+  if (!Number.isFinite(costo) || costo < 0 || costo > 100_000_000) {
+    throw new ErrorDeNegocio('DATOS_INVALIDOS', 'El costo debe ser un valor entre 0 y 100.000.000.');
+  }
+  return Math.round(costo * 100) / 100;
+}
+
 // Bajo mínimo: hay que comprar. Un repuesto con mínimo 0 solo avisa cuando se agota.
 export function bajoMinimo(repuesto: { existencias: number; minimo: number }): boolean {
   return repuesto.existencias === 0 || repuesto.existencias < repuesto.minimo;

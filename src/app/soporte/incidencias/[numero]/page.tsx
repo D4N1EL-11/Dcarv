@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { AccionesIncidencia } from '@/components/soporte/AccionesIncidencia';
+import { AsistenteCaso } from '@/components/soporte/AsistenteCaso';
+import { CalificarCaso, Estrellas } from '@/components/soporte/CalificacionCaso';
 import { ClasificarIncidencia } from '@/components/soporte/ClasificarIncidencia';
 import { ConversacionCaso } from '@/components/soporte/ConversacionCaso';
 import { InsigniaEstadoEquipo } from '@/components/soporte/InsigniaEstadoEquipo';
@@ -27,6 +29,7 @@ import {
   rolActual,
 } from '@/lib/dataService';
 import { formatearFecha, plural, textoAntiguedad, textoResolucion } from '@/lib/formato';
+import { iaConfigurada } from '@/lib/ia';
 import { motivoSinComentarios } from '@/lib/reglas/comentario';
 import { diasEntre, hoyBogota } from '@/lib/reglas/fechas';
 import { esquemaNumeroCaso } from '@/lib/validacion/esquemas';
@@ -158,6 +161,18 @@ export default async function FichaDelCaso({ params }: Props) {
         </div>
 
         <aside className="grid content-start gap-4">
+          {cerrada && caso.calificacion !== null ? (
+            <BloquePanel titulo="Calificación del servicio">
+              <Estrellas valor={caso.calificacion} className="size-5" />
+              {caso.calificacionComentario ? (
+                <p className="text-sm italic text-texto-suave">“{caso.calificacionComentario}”</p>
+              ) : null}
+            </BloquePanel>
+          ) : cerrada && quien.esQuienReporto ? (
+            <BloquePanel titulo="Califique la atención" className="print:hidden">
+              <CalificarCaso numeroCaso={caso.numeroCaso} />
+            </BloquePanel>
+          ) : null}
           <BloquePanel titulo="Detalles">
             <dl className="grid gap-4">
               <Dato titulo="Equipo">
@@ -213,6 +228,11 @@ export default async function FichaDelCaso({ params }: Props) {
                     otrasPendientes={caso.otrasPendientes}
                     tecnicos={tecnicos.filter((t) => t.activo).map(({ id, nombre }) => ({ id, nombre }))}
                   />
+                </BloquePanel>
+              ) : null}
+              {iaConfigurada() ? (
+                <BloquePanel titulo="Asistente con IA" className="print:hidden">
+                  <AsistenteCaso numeroCaso={caso.numeroCaso} />
                 </BloquePanel>
               ) : null}
               <BloquePanel titulo="Clasificación" className="print:hidden">

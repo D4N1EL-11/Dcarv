@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BarrasHorizontales } from '@/components/soporte/BarrasHorizontales';
+import { Estrellas } from '@/components/soporte/CalificacionCaso';
 import { BotonImprimir } from '@/components/ui/BotonImprimir';
 import { BloquePanel, EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Cifra } from '@/components/ui/Cifra';
@@ -218,6 +219,33 @@ export default async function PaginaInforme({ searchParams }: Props) {
         </div>
       </section>
 
+      <BloquePanel titulo="Satisfacción · calificaciones de quienes reportaron">
+        {informe.satisfaccion.total ? (
+          <div className="grid items-center gap-6 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="grid justify-items-start gap-2">
+              <span className="text-5xl font-semibold leading-none tabular-nums text-texto">
+                {informe.satisfaccion.promedio!.toFixed(1).replace('.', ',')}
+                <span className="text-xl text-texto-suave"> / 5</span>
+              </span>
+              <Estrellas valor={Math.round(informe.satisfaccion.promedio!)} className="size-5" />
+              <span className="text-xs text-texto-suave">{plural(informe.satisfaccion.total, 'calificación', 'calificaciones')}</span>
+            </div>
+            <BarrasHorizontales
+              titulo="Calificaciones por número de estrellas"
+              unidad={['calificación', 'calificaciones']}
+              ordenar={false}
+              filas={[5, 4, 3, 2, 1].map((n) => ({
+                clave: String(n),
+                etiqueta: `${n} ${n === 1 ? 'estrella' : 'estrellas'}`,
+                valor: informe.satisfaccion.porEstrellas[n - 1] ?? 0,
+              }))}
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-texto-suave">Nadie calificó la atención este mes.</p>
+        )}
+      </BloquePanel>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <BloquePanel titulo="Técnicos · casos cerrados en el mes">
           {informe.porTecnico.length ? (
@@ -228,6 +256,7 @@ export default async function PaginaInforme({ searchParams }: Props) {
                   <th scope="col">Cerrados</th>
                   <th scope="col">Tiempo medio</th>
                   <th scope="col">Dentro de la meta</th>
+                  <th scope="col">Calificación</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-borde">
@@ -238,6 +267,9 @@ export default async function PaginaInforme({ searchParams }: Props) {
                     <td className="py-2 pl-4 text-right text-texto-suave">{textoPromedioDias(t.promedioDias)}</td>
                     <td className="py-2 pl-4 text-right tabular-nums text-texto-suave" title="Cierres dentro de la meta de su prioridad">
                       {Math.round((t.dentroDeMeta / t.cerradas) * 100)} % a tiempo
+                    </td>
+                    <td className="py-2 pl-4 text-right tabular-nums text-texto-suave" title={plural(t.calificaciones, 'calificación', 'calificaciones')}>
+                      {t.promedioEstrellas !== null ? `★ ${t.promedioEstrellas.toFixed(1).replace('.', ',')}` : '—'}
                     </td>
                   </tr>
                 ))}

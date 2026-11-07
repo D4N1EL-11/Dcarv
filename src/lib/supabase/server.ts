@@ -45,3 +45,30 @@ export function createSupabaseAdminClient() {
 		},
 	});
 }
+// Inicio de sesión con Microsoft o Google (lib/auth/oauth.ts): flujo PKCE en el servidor. El
+// verificador del código se guarda en `memoria` y la ruta lo lleva en una cookie entre la ida al
+// proveedor y la vuelta; ninguna sesión de Supabase queda guardada en el servidor.
+export function createSupabaseOAuthClient(memoria: Map<string, string>) {
+	if (!supabaseUrl || !supabaseKey) {
+		throw new Error('Falta configurar la URL o la clave pública de Supabase.');
+	}
+
+	return createClient(supabaseUrl, supabaseKey, {
+		auth: {
+			flowType: 'pkce',
+			storageKey: 'dcarv-oauth',
+			storage: {
+				getItem: (clave) => memoria.get(clave) ?? null,
+				setItem: (clave, valor) => {
+					memoria.set(clave, valor);
+				},
+				removeItem: (clave) => {
+					memoria.delete(clave);
+				},
+			},
+			persistSession: true,
+			autoRefreshToken: false,
+			detectSessionInUrl: false,
+		},
+	});
+}

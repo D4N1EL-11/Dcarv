@@ -51,6 +51,10 @@ const TRAZOS = {
   luna: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
   notificacion: 'M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4M19 3l2-2',
   editar: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  estrella: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z',
+  libro: 'M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z',
+  chispa: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
+  analitica: 'M3 3v18h18M7 15l4-4 3 3 6-7',
 } as const;
 
 export type NombreIcono = keyof typeof TRAZOS;

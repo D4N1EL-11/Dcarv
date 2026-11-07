@@ -12,7 +12,7 @@ function irAlLogin(): void {
 
 export async function llamarApi<T = unknown>(
   url: string,
-  metodo: 'POST' | 'PATCH' | 'DELETE',
+  metodo: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   cuerpo?: unknown,
 ): Promise<RespuestaApi<T>> {
   try {

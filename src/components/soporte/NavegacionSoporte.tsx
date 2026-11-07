@@ -30,6 +30,7 @@ const ENLACES_SOPORTE: Enlace[] = [
 const ENLACES_REPORTE: Enlace[] = [
   { href: '/soporte/reportar', texto: 'Reportar falla', icono: 'incidencias' },
   { href: '/soporte/mis-reportes', texto: 'Mis reportes', icono: 'check' },
+  { href: '/soporte/conocimiento', texto: 'Guías', icono: 'libro' },
 ];
 
 // candidatos: códigos de los candidatos a baja; vistos: los que ya se vieron en /soporte/alertas;

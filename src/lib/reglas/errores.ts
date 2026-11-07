@@ -20,6 +20,10 @@ export type CodigoError =
   | 'REPUESTO_NO_ENCONTRADO'
   | 'SIN_EXISTENCIAS'
   | 'PUSH_NO_CONFIGURADO'
+  | 'ARTICULO_NO_ENCONTRADO'
+  | 'YA_CALIFICADA'
+  | 'IA_NO_CONFIGURADA'
+  | 'IA_NO_DISPONIBLE'
   | 'ERROR_INTERNO';
 
 export const MENSAJES: Record<CodigoError, string> = {
@@ -44,6 +48,10 @@ export const MENSAJES: Record<CodigoError, string> = {
   REPUESTO_NO_ENCONTRADO: 'El repuesto no existe.',
   SIN_EXISTENCIAS: 'No hay existencias suficientes de ese repuesto.',
   PUSH_NO_CONFIGURADO: 'Las notificaciones push no están configuradas en el servidor.',
+  ARTICULO_NO_ENCONTRADO: 'La guía no existe.',
+  YA_CALIFICADA: 'Este caso ya fue calificado.',
+  IA_NO_CONFIGURADA: 'El asistente con IA no está configurado en el servidor.',
+  IA_NO_DISPONIBLE: 'El asistente con IA no respondió. Intente de nuevo en un momento.',
   ERROR_INTERNO: 'Ocurrió un error inesperado. Intente de nuevo.',
 };
 
@@ -69,6 +77,10 @@ export const ESTADO_HTTP: Record<CodigoError, number> = {
   REPUESTO_NO_ENCONTRADO: 404,
   SIN_EXISTENCIAS: 409,
   PUSH_NO_CONFIGURADO: 503,
+  ARTICULO_NO_ENCONTRADO: 404,
+  YA_CALIFICADA: 409,
+  IA_NO_CONFIGURADA: 503,
+  IA_NO_DISPONIBLE: 502,
   ERROR_INTERNO: 500,
 };
 

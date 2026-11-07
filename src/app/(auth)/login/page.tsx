@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CampoContrasena } from '@/components/auth/CampoContrasena';
 import { CLASES_ENLACE_DORADO, MarcoAcceso } from '@/components/auth/MarcoAcceso';
+import { MENSAJES_OAUTH, NOMBRE_PROVEEDOR, proveedorOAuth } from '@/lib/auth/oauth';
 import { esRolValido, inicioPara } from '@/lib/auth/permisos';
 import { rutaSegura } from '@/lib/auth/redireccion';
 import { Boton } from '@/components/ui/Boton';
@@ -30,8 +31,14 @@ export default function LoginPage() {
 	// Ruta pedida antes de iniciar sesión (?siguiente=); sin ella, el inicio de cada rol.
 	const [siguiente, setSiguiente] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	// Error al volver de Microsoft o Google (?oauth=).
+	const [errorOAuth, setErrorOAuth] = useState('');
+	// NEXT_PUBLIC_*: se resuelve al compilar, igual en el servidor y en el navegador.
+	const proveedor = proveedorOAuth();
 	useEffect(() => {
 		const parametros = new URLSearchParams(window.location.search);
+		const motivo = parametros.get('oauth');
+		setErrorOAuth(motivo ? (MENSAJES_OAUTH[motivo] ?? MENSAJES_OAUTH.error!) : '');
 		setRestablecimientoAviso(parametros.get('restablecida') === '1');
 		setSesionExpirada(parametros.get('expirada') === '1');
 		setSiguiente(parametros.get('siguiente'));
@@ -111,7 +118,32 @@ export default function LoginPage() {
 				</p>
 			) : null}
 
-			<form className="mt-8 grid gap-5" onSubmit={submit} noValidate>
+			{errorOAuth ? (
+				<p role="alert" className="mt-6 rounded-lg border border-baja/30 bg-baja/10 px-4 py-3 text-sm text-baja">
+					{errorOAuth}
+				</p>
+			) : null}
+
+			{proveedor ? (
+				<div className="mt-8 grid gap-4">
+					{/* Enlace, no fetch: el navegador tiene que ir al proveedor y volver. */}
+					<a
+						href={siguiente ? `/api/auth/oauth?siguiente=${encodeURIComponent(siguiente)}` : '/api/auth/oauth'}
+						className="flex w-full items-center justify-center gap-3 rounded-lg border border-borde bg-superficie-alta px-5 py-3 text-sm font-medium text-texto transition hover:border-primario/60 hover:text-primario"
+					>
+						<span aria-hidden="true" className="grid size-5 place-items-center rounded-sm bg-primario text-[0.65rem] font-bold text-fondo">
+							{NOMBRE_PROVEEDOR[proveedor].charAt(0)}
+						</span>
+						Entrar con {NOMBRE_PROVEEDOR[proveedor]} (cuenta institucional)
+					</a>
+					<p className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-texto-suave">
+						<span aria-hidden="true" className="h-px flex-1 bg-borde" />o con su correo y contraseña
+						<span aria-hidden="true" className="h-px flex-1 bg-borde" />
+					</p>
+				</div>
+			) : null}
+
+			<form className={`${proveedor ? 'mt-4' : 'mt-8'} grid gap-5`} onSubmit={submit} noValidate>
 				<Input
 					id="email"
 					label="Correo electrónico"

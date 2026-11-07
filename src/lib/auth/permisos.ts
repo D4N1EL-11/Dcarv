@@ -46,7 +46,14 @@ export function inicioPara(rol: Rol): string {
 }
 
 // Páginas de /soporte que abre una cuenta de reporte.
-const PAGINAS_REPORTE = ['/soporte/reportar', '/soporte/mis-reportes', '/soporte/ayuda', '/soporte/cuenta', '/soporte/avisos'];
+const PAGINAS_REPORTE = [
+  '/soporte/reportar',
+  '/soporte/mis-reportes',
+  '/soporte/ayuda',
+  '/soporte/cuenta',
+  '/soporte/avisos',
+  '/soporte/conocimiento',
+];
 
 // La ficha de un caso (/soporte/incidencias/INC-0001): una cuenta de reporte solo abre las de sus
 // propios casos; eso lo comprueba la página, que conoce la incidencia. El listado general
@@ -82,6 +89,13 @@ const API_REPORTE: { metodo: string; patron: RegExp }[] = [
   { metodo: 'POST', patron: /^\/api\/soporte\/cuenta\/solicitud$/ },
   { metodo: 'POST', patron: /^\/api\/soporte\/push$/ },
   { metodo: 'DELETE', patron: /^\/api\/soporte\/push$/ },
+  // Calificar la atención de un caso propio (la ruta comprueba que sea de quien califica).
+  { metodo: 'POST', patron: /^\/api\/soporte\/incidencias\/[^/]+\/calificacion$/ },
+  // Base de conocimiento: leer y votar guías; sugerencia de clasificación con IA al reportar.
+  { metodo: 'GET', patron: /^\/api\/soporte\/conocimiento$/ },
+  { metodo: 'GET', patron: /^\/api\/soporte\/conocimiento\/[^/]+$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/conocimiento\/[^/]+\/voto$/ },
+  { metodo: 'POST', patron: /^\/api\/soporte\/ia\/clasificar$/ },
 ];
 
 export function puedeUsarApi(rol: Rol, metodo: string, ruta: string): boolean {

@@ -3,7 +3,9 @@ import {
   CATEGORIAS_INCIDENCIA,
   ESTADOS_EQUIPO,
   ESTADOS_INCIDENCIA,
+  LARGO_MAXIMO_ARTICULO,
   LARGO_MAXIMO_COMENTARIO,
+  LARGO_MAXIMO_COMENTARIO_CALIFICACION,
   LARGO_MAXIMO_NOTAS_MANTENIMIENTO,
   LARGO_MINIMO_COMENTARIO,
   MAXIMO_CANTIDAD_REPUESTO,
@@ -171,16 +173,19 @@ const cantidad = z
   .min(1, 'Mínimo 1.')
   .max(MAXIMO_CANTIDAD_REPUESTO, `Máximo ${MAXIMO_CANTIDAD_REPUESTO}.`);
 
+const costo = z.number().min(0, 'No puede ser negativo.').max(100_000_000, 'Valor demasiado alto.');
+
 export const esquemaRepuesto = z.object({
   nombre: z.string().trim().min(2, 'Escriba al menos 2 caracteres.').max(80),
   existencias,
   minimo: existencias,
+  costoUnitario: costo.optional(),
 });
 
 export const esquemaActualizarRepuesto = z
-  .object({ entrada: cantidad.optional(), minimo: existencias.optional() })
-  .refine((datos) => datos.entrada !== undefined || datos.minimo !== undefined, {
-    message: 'Indique la entrada o el mínimo.',
+  .object({ entrada: cantidad.optional(), minimo: existencias.optional(), costoUnitario: costo.optional() })
+  .refine((datos) => datos.entrada !== undefined || datos.minimo !== undefined || datos.costoUnitario !== undefined, {
+    message: 'Indique la entrada, el mínimo o el costo.',
   });
 
 export const esquemaUsoRepuesto = z.object({ repuestoId: z.uuid('Seleccione un repuesto.'), cantidad });
@@ -192,6 +197,61 @@ export const esquemaSuscripcionPush = z.object({
 });
 
 export const esquemaBajaPush = z.object({ endpoint: z.url().max(1000) });
+
+// Hoja de vida del equipo (M15): vacío = sin dato.
+const textoOpcional = (maximo: number) =>
+  z.preprocess((v) => (typeof v === 'string' && !v.trim() ? null : v), z.string().trim().max(maximo).nullable());
+const enteroOpcional = (minimo: number, maximo: number, mensaje: string) =>
+  z.preprocess((v) => (v === '' || v === undefined ? null : v), z.number().int(mensaje).min(minimo, mensaje).max(maximo, mensaje).nullable());
+const fechaOpcional = z.preprocess(
+  (v) => (v === '' || v === undefined ? null : v),
+  esquemaFechaIso.nullable(),
+);
+
+export const esquemaHojaDeVida = z.object({
+  marcaModelo: textoOpcional(80),
+  procesador: textoOpcional(80),
+  ramGb: enteroOpcional(1, 1024, 'La RAM va de 1 a 1024 GB.'),
+  discoGb: enteroOpcional(1, 100_000, 'El disco va de 1 a 100000 GB.'),
+  sistemaOperativo: textoOpcional(60),
+  numeroSerie: textoOpcional(60),
+  fechaCompra: fechaOpcional,
+  garantiaHasta: fechaOpcional,
+});
+
+// Calificación del servicio (M16).
+export const esquemaCalificacion = z.object({
+  estrellas: z.number().int().min(1, 'Elija de 1 a 5 estrellas.').max(5, 'Elija de 1 a 5 estrellas.'),
+  comentario: z
+    .string()
+    .trim()
+    .max(LARGO_MAXIMO_COMENTARIO_CALIFICACION, `Máximo ${LARGO_MAXIMO_COMENTARIO_CALIFICACION} caracteres.`)
+    .optional(),
+});
+
+// Base de conocimiento (M17).
+export const esquemaArticulo = z.object({
+  titulo: z.string().trim().min(5, 'El título debe tener al menos 5 caracteres.').max(120),
+  categoria: z.enum(CATEGORIAS_INCIDENCIA),
+  contenido: z
+    .string()
+    .trim()
+    .min(20, 'Escriba al menos 20 caracteres.')
+    .max(LARGO_MAXIMO_ARTICULO, `Máximo ${LARGO_MAXIMO_ARTICULO} caracteres.`),
+  palabrasClave: z.string().trim().max(200).default(''),
+});
+
+export const esquemaBusquedaConocimiento = z.object({
+  q: opcional(z.string().trim().max(300)),
+  limite: opcional(z.coerce.number().int().min(1).max(50)),
+});
+
+export const esquemaVoto = z.object({ util: z.boolean() });
+
+// Asistente con IA: la descripción que se está escribiendo al reportar.
+export const esquemaClasificarIa = z.object({
+  descripcion: z.string().trim().min(10, 'Describa la falla con un poco más de detalle.').max(1000),
+});
 
 export type DatosSala = z.infer<typeof esquemaSala>;
 export type DatosEquipo = z.infer<typeof esquemaEquipo>;

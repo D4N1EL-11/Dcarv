@@ -24,6 +24,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@supabase/supabase-js": "^2.117.2",
     "@vercel/connect": "^2.5.2",
     "jose": "^6.1.0",

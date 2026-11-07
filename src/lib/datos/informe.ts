@@ -44,7 +44,12 @@ export type FilaTecnicoInforme = {
   promedioDias: number | null;
   promedioHoras: number | null;
   dentroDeMeta: number;
+  // Calificaciones de quienes reportaron sus casos cerrados en el mes.
+  promedioEstrellas: number | null;
+  calificaciones: number;
 };
+// Calificaciones dadas en el mes (por el día en que se calificó).
+export type SatisfaccionInforme = { promedio: number | null; total: number; porEstrellas: number[] };
 // Cierres del mes por prioridad frente a su meta de horas.
 export type FilaSlaInforme = {
   prioridad: PrioridadIncidencia;
@@ -65,6 +70,7 @@ export type Informe = {
   porSala: FilaSalaInforme[];
   porTecnico: FilaTecnicoInforme[];
   sla: FilaSlaInforme[];
+  satisfaccion: SatisfaccionInforme;
   equiposConMasFallas: FilaEquipoInforme[];
   bajas: FilaBajaInforme[];
   mantenimientos: FilaMantenimiento[];
@@ -140,10 +146,25 @@ async function slaDelMes(desde: string, hasta: string): Promise<FilaSlaInforme[]
   );
 }
 
+async function satisfaccionDelMes(desde: string, hasta: string): Promise<SatisfaccionInforme> {
+  const filas = await consultar<{ estrellas: number; total: number }>(
+    `SELECT i.calificacion AS estrellas, COUNT(*) AS total
+       FROM incidencias i
+      WHERE i.calificacion IS NOT NULL
+        AND (i.calificada_en AT TIME ZONE '${ZONA_HORARIA}')::date BETWEEN $1::date AND $2::date
+      GROUP BY i.calificacion`,
+    [desde, hasta],
+  );
+  const porEstrellas = [1, 2, 3, 4, 5].map((n) => filas.find((f) => f.estrellas === n)?.total ?? 0);
+  const total = porEstrellas.reduce((s, n) => s + n, 0);
+  const suma = porEstrellas.reduce((s, n, i) => s + n * (i + 1), 0);
+  return { promedio: total ? suma / total : null, total, porEstrellas };
+}
+
 export async function informeMensual(mes: Mes): Promise<Informe> {
   const { desde, hasta } = rangoDelMes(mes);
   const previo = rangoDelMes(sumarMeses(mes, -1));
-  const [resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, equiposConMasFallas, bajas, mantenimientos] =
+  const [resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, satisfaccion, equiposConMasFallas, bajas, mantenimientos] =
     await Promise.all([
       resumenDe(desde, hasta),
       resumenDe(previo.desde, previo.hasta),
@@ -153,7 +174,9 @@ export async function informeMensual(mes: Mes): Promise<Informe> {
       consultar<FilaTecnicoInforme>(
         `SELECT t.nombre AS tecnico, COUNT(*) AS cerradas, (AVG(${CIERRE} - i.fecha))::float8 AS "promedioDias",
                 (AVG(${HORAS_ATENCION}))::float8 AS "promedioHoras",
-                COUNT(*) FILTER (WHERE ${DENTRO_DE_META}) AS "dentroDeMeta"
+                COUNT(*) FILTER (WHERE ${DENTRO_DE_META}) AS "dentroDeMeta",
+                (AVG(i.calificacion))::float8 AS "promedioEstrellas",
+                COUNT(i.calificacion) AS calificaciones
            FROM incidencias i JOIN tecnicos t ON t.id = i.tecnico_id
           WHERE ${CERRADA_EN_MES}
           GROUP BY t.id, t.nombre
@@ -161,6 +184,7 @@ export async function informeMensual(mes: Mes): Promise<Informe> {
         [desde, hasta],
       ),
       slaDelMes(desde, hasta),
+      satisfaccionDelMes(desde, hasta),
       consultar<FilaEquipoInforme>(
         `SELECT e.codigo, s.nombre AS sala, COUNT(*) AS fallas
            FROM incidencias i JOIN equipos e ON e.id = i.equipo_id JOIN salas s ON s.id = e.sala_id
@@ -182,7 +206,7 @@ export async function informeMensual(mes: Mes): Promise<Informe> {
       ),
       historialMantenimientos({ desde, hasta }, 200),
     ]);
-  return { desde, hasta, resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, equiposConMasFallas, bajas, mantenimientos };
+  return { desde, hasta, resumen, anterior, porCategoria, porPrioridad, porSala, porTecnico, sla, satisfaccion, equiposConMasFallas, bajas, mantenimientos };
 }
 
 // Mes del primer registro (la primera incidencia): el selector no ofrece meses anteriores.

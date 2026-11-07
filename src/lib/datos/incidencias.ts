@@ -172,7 +172,8 @@ export async function historialDeEquipo(codigo: string): Promise<FilaIncidencia[
 export async function obtenerIncidencia(numeroCaso: string): Promise<FichaCaso | null> {
   const { valores, p } = crearParametros();
   const [fila] = await consultar<FichaCaso>(
-    `${seleccion(p, `s.nombre AS sala, e.sala_id AS "salaId", i.reportado_por AS "reportadoPorId",`)}
+    `${seleccion(p, `s.nombre AS sala, e.sala_id AS "salaId", i.reportado_por AS "reportadoPorId",
+        i.calificacion, i.calificacion_comentario AS "calificacionComentario",`)}
      JOIN salas s ON s.id = e.sala_id
      WHERE i.numero_caso = ${p(numeroCaso.trim().toUpperCase())}`,
     valores,

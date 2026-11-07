@@ -10,13 +10,14 @@ import { useRefrescar } from '@/hooks/use-refrescar';
 import { llamarApi } from '@/lib/clienteApi';
 import { esquemaActualizarRepuesto } from '@/lib/validacion/esquemas';
 
-// Entrada a bodega (compra o devolución) y cambio del mínimo de un repuesto.
-export function AccionesRepuesto({ id, nombre, minimo }: { id: string; nombre: string; minimo: number }) {
+// Entrada a bodega (compra o devolución) y cambio del mínimo o del costo de un repuesto.
+export function AccionesRepuesto({ id, nombre, minimo, costo }: { id: string; nombre: string; minimo: number; costo: number }) {
   const { refrescar, refrescando } = useRefrescar();
   const { mostrar } = useAvisos();
   const [abierto, setAbierto] = useState(false);
   const [entrada, setEntrada] = useState('');
   const [nuevoMinimo, setNuevoMinimo] = useState(String(minimo));
+  const [nuevoCosto, setNuevoCosto] = useState(String(costo));
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 
@@ -25,6 +26,7 @@ export function AccionesRepuesto({ id, nombre, minimo }: { id: string; nombre: s
     const datos = {
       ...(entrada.trim() ? { entrada: Number(entrada) } : {}),
       ...(Number(nuevoMinimo) !== minimo ? { minimo: Number(nuevoMinimo) } : {}),
+      ...(nuevoCosto.trim() && Number(nuevoCosto) !== costo ? { costoUnitario: Number(nuevoCosto) } : {}),
     };
     const validacion = esquemaActualizarRepuesto.safeParse(datos);
     if (!validacion.success) {
@@ -48,7 +50,7 @@ export function AccionesRepuesto({ id, nombre, minimo }: { id: string; nombre: s
   return (
     <>
       <Boton variante="fantasma" className="px-3 py-1.5" onClick={() => setAbierto(true)}>
-        Entrada / mínimo
+        Entrada / mínimo / costo
       </Boton>
       {abierto ? (
         <Modal titulo={nombre} alCerrar={() => setAbierto(false)}>
@@ -72,6 +74,17 @@ export function AccionesRepuesto({ id, nombre, minimo }: { id: string; nombre: s
               value={nuevoMinimo}
               onChange={(evento) => {
                 setNuevoMinimo(evento.target.value);
+                setError('');
+              }}
+            />
+            <Campo
+              etiqueta="Costo por unidad (COP)"
+              type="number"
+              min={0}
+              step="any"
+              value={nuevoCosto}
+              onChange={(evento) => {
+                setNuevoCosto(evento.target.value);
                 setError('');
               }}
             />
