@@ -76,32 +76,13 @@ export function MenuUsuario({ email, rol }: { email: string; rol: Rol }) {
             <Link role="menuitem" href="/soporte/avisos" className={CLASES_OPCION}>
               <Icono nombre="campana" className="size-4 text-texto-suave" /> Avisos
             </Link>
-            {esSoporte(rol) ? (
-              <Link role="menuitem" href="/soporte/informe" className={CLASES_OPCION}>
-                <Icono nombre="informe" className="size-4 text-texto-suave" /> Informe mensual
-              </Link>
-            ) : null}
-            {esSoporte(rol) ? (
-              <Link role="menuitem" href="/soporte/analitica" className={CLASES_OPCION}>
-                <Icono nombre="analitica" className="size-4 text-texto-suave" /> Analítica
-              </Link>
-            ) : null}
+            {/* Informe, analítica, mapa y monitor se abren desde los botones del panel. */}
             <Link role="menuitem" href="/soporte/conocimiento" className={CLASES_OPCION}>
               <Icono nombre="libro" className="size-4 text-texto-suave" /> Base de conocimiento
             </Link>
             {esSoporte(rol) ? (
               <Link role="menuitem" href="/soporte/repuestos" className={CLASES_OPCION}>
                 <Icono nombre="repuesto" className="size-4 text-texto-suave" /> Repuestos
-              </Link>
-            ) : null}
-            {esSoporte(rol) ? (
-              <Link role="menuitem" href="/soporte/mapa" className={CLASES_OPCION}>
-                <Icono nombre="mapa" className="size-4 text-texto-suave" /> Mapa de salas
-              </Link>
-            ) : null}
-            {esSoporte(rol) ? (
-              <Link role="menuitem" href="/monitor" className={CLASES_OPCION}>
-                <Icono nombre="monitor" className="size-4 text-texto-suave" /> Modo monitor
               </Link>
             ) : null}
             {esSoporte(rol) ? (

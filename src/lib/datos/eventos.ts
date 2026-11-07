@@ -37,7 +37,8 @@ export type AccionEvento =
   | 'caso_calificado'
   | 'articulo_publicado'
   | 'articulo_editado'
-  | 'articulo_eliminado';
+  | 'articulo_eliminado'
+  | 'cuenta_eliminada';
 
 export type FilaEvento = {
   id: number;

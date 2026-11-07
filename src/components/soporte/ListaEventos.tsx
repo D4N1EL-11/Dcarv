@@ -36,6 +36,7 @@ const ICONO: Record<AccionEvento, NombreIcono> = {
   articulo_publicado: 'libro',
   articulo_editado: 'libro',
   articulo_eliminado: 'libro',
+  cuenta_eliminada: 'usuario',
 };
 
 const formatoMomento = new Intl.DateTimeFormat('es-CO', {

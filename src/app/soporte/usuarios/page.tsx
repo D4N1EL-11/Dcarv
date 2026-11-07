@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { DecisionSolicitud } from '@/components/soporte/DecisionSolicitud';
+import { EliminarCuenta } from '@/components/soporte/EliminarCuenta';
 import { SelectorRol } from '@/components/soporte/SelectorRol';
 import { EncabezadoPagina, TituloSeccion } from '@/components/ui/Encabezado';
 import { Insignia } from '@/components/ui/Insignia';
@@ -77,6 +78,9 @@ export default async function PaginaUsuarios() {
                 <th scope="col" className="px-5 py-3 font-medium">Reportes</th>
                 <th scope="col" className="px-5 py-3 font-medium">Creada</th>
                 <th scope="col" className="w-56 px-5 py-3 font-medium">Rol</th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  <span className="sr-only">Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borde">
@@ -97,6 +101,12 @@ export default async function PaginaUsuarios() {
                   <td className="px-5 py-3 text-texto-suave">{formatearFecha(usuario.creado)}</td>
                   <td className="px-5 py-3">
                     <SelectorRol id={usuario.id} email={usuario.email} rol={usuario.rol} propia={usuario.id === sesion.id} />
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {/* La propia cuenta no se elimina: siempre queda al menos un administrador. */}
+                    {usuario.id === sesion.id ? null : (
+                      <EliminarCuenta id={usuario.id} email={usuario.email} reportes={usuario.reportes} />
+                    )}
                   </td>
                 </tr>
               ))}

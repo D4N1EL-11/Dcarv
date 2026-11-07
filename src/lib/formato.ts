@@ -154,6 +154,8 @@ export function textoEvento(evento: EventoParaTexto): string {
       return `publicó la guía "${detalle}"`;
     case 'articulo_editado':
       return `editó la guía "${detalle}"`;
+    case 'cuenta_eliminada':
+      return `eliminó la cuenta ${detalle}`;
     case 'articulo_eliminado':
       return `eliminó la guía "${detalle}"`;
     case 'repuesto_usado':

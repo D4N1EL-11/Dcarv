@@ -86,6 +86,7 @@ export { intentosRecientes, registrarIntento } from '@/lib/datos/accesos';
 export {
 	cambiarRol,
 	decidirSolicitud,
+	eliminarCuenta,
 	estadoDeCuenta,
 	listarUsuarios,
 	prepararCuentaNueva,

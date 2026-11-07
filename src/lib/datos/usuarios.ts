@@ -3,6 +3,7 @@ import { conTransaccion, consultar } from '@/lib/db/conexion';
 import { esRolValido, esSoporte, nombreRol, puedeSolicitarSoporte, type Rol } from '@/lib/auth/permisos';
 import { avisoSolicitudAprobada, avisoSolicitudRechazada, avisoSolicitudSoporte } from '@/lib/reglas/avisos';
 import { ErrorDeNegocio } from '@/lib/reglas/errores';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { avisarA, avisarAAdministradores } from './avisos';
 import { registrarEvento } from './eventos';
 
@@ -134,4 +135,23 @@ export async function cambiarRol(id: string, rol: Rol, quienCambia: string): Pro
       detalle: `${usuario.email}: ${nombreRol(usuario.role)} → ${nombreRol(rol)}`,
     });
   });
+}
+
+// Eliminar una cuenta (solo administradores, desde "Cuentas y roles"). Se borra en Supabase Auth y
+// public.users cae con ella (ON DELETE CASCADE), igual que sus avisos y suscripciones push. Lo que
+// la persona dejó no se pierde: sus reportes quedan sin cuenta asociada (ON DELETE SET NULL) y los
+// comentarios conservan su correo. Nadie elimina su propia cuenta, así que siempre queda al menos
+// el administrador que actúa.
+export async function eliminarCuenta(id: string, quienElimina: string): Promise<{ email: string }> {
+  if (id === quienElimina) throw new ErrorDeNegocio('SIN_PERMISO', 'No puede eliminar su propia cuenta.');
+  const [cuenta] = await consultar<{ email: string; role: string }>('SELECT email, role FROM public.users WHERE id = $1', [id]);
+  if (!cuenta) throw new ErrorDeNegocio('USUARIO_NO_ENCONTRADO');
+  const { error } = await createSupabaseAdminClient().auth.admin.deleteUser(id);
+  if (error) {
+    console.error('No se pudo eliminar la cuenta en Supabase Auth.', error);
+    throw new ErrorDeNegocio('ERROR_INTERNO', 'No se pudo eliminar la cuenta. Intente de nuevo.');
+  }
+  const rol = esRolValido(cuenta.role) ? nombreRol(cuenta.role) : cuenta.role;
+  await conTransaccion((tx) => registrarEvento(tx, { accion: 'cuenta_eliminada', detalle: `${cuenta.email} (${rol})` }));
+  return { email: cuenta.email };
 }
